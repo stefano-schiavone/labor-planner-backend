@@ -3,14 +3,20 @@ package com.laborplanner.backend.model;
 import jakarta.persistence.*;
 import java.time.Duration;
 import java.util.UUID;
+import lombok.*;
 
+// Lombok and JPA notation
 @Entity
 @Table(name = "job_template")
+@Getter
+@Setter
+@NoArgsConstructor // Required by JPA
 public class JobTemplate {
 
   // Fields
   @Id
   @Column(name = "job_template_uuid", nullable = false, updatable = false)
+  @Setter(AccessLevel.NONE)
   private String jobTemplateUuid = UUID.randomUUID().toString();
 
   @Column(name = "name", nullable = false)
@@ -19,7 +25,6 @@ public class JobTemplate {
   @Column(name = "description")
   private String description;
 
-  // Duration represented as java.time.Duration
   @Column(name = "duration", nullable = false)
   private Duration duration;
 
@@ -32,8 +37,7 @@ public class JobTemplate {
   private User createdByUser;
 
   // Constructors
-  public JobTemplate() {}
-
+  // Constructor with all arguments except UUID
   public JobTemplate(
       String name,
       String description,
@@ -44,51 +48,6 @@ public class JobTemplate {
     this.description = description;
     this.duration = duration;
     this.requiredMachineType = requiredMachineType;
-    this.createdByUser = createdByUser;
-  }
-
-  // Getters & Setters
-  public String getJobTemplateUuid() {
-    return this.jobTemplateUuid;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getDescription() {
-    return this.description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public Duration getDuration() {
-    return this.duration;
-  }
-
-  public void setDuration(Duration duration) {
-    this.duration = duration;
-  }
-
-  public MachineType getRequiredMachineType() {
-    return this.requiredMachineType;
-  }
-
-  public void setRequiredMachineType(MachineType requiredMachineType) {
-    this.requiredMachineType = requiredMachineType;
-  }
-
-  public User getCreatedByUser() {
-    return this.createdByUser;
-  }
-
-  public void setCreatedByUser(User createdByUser) {
     this.createdByUser = createdByUser;
   }
 }

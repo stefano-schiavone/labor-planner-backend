@@ -3,20 +3,25 @@ package com.laborplanner.backend.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.*;
 
+// Lombok and JPA notation
 @Entity
 @Table(name = "schedule")
+@Getter
+@Setter
+@NoArgsConstructor // Required by JPA
 public class Schedule {
 
   // Fields
   @Id
   @Column(name = "schedule_uuid", nullable = false, updatable = false)
+  @Setter(AccessLevel.NONE)
   private String scheduleUuid = UUID.randomUUID().toString();
 
   @Column(name = "week_start_date", nullable = false)
   private LocalDateTime weekStartDate;
 
-  // Many schedules can be created by one user
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "created_by_user_uuid", nullable = false)
   private User createdByUser;
@@ -25,40 +30,10 @@ public class Schedule {
   private LocalDateTime lastModifiedDate;
 
   // Constructors
-  public Schedule() {}
-
+  // Constructor with all arguments except UUID
   public Schedule(LocalDateTime weekStartDate, User createdByUser, LocalDateTime lastModifiedDate) {
     this.weekStartDate = weekStartDate;
     this.createdByUser = createdByUser;
-    this.lastModifiedDate = lastModifiedDate;
-  }
-
-  // Getters & Setters
-  public String getScheduleUuid() {
-    return this.scheduleUuid;
-  }
-
-  public LocalDateTime getWeekStartDate() {
-    return this.weekStartDate;
-  }
-
-  public void setWeekStartDate(LocalDateTime weekStartDate) {
-    this.weekStartDate = weekStartDate;
-  }
-
-  public User getCreatedByUser() {
-    return this.createdByUser;
-  }
-
-  public void setCreatedByUser(User createdByUser) {
-    this.createdByUser = createdByUser;
-  }
-
-  public LocalDateTime getLastModifiedDate() {
-    return this.lastModifiedDate;
-  }
-
-  public void setLastModifiedDate(LocalDateTime lastModifiedDate) {
     this.lastModifiedDate = lastModifiedDate;
   }
 }

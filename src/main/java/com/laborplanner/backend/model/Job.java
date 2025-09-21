@@ -6,14 +6,20 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import lombok.*;
 
+// Lombok and JPA notation
 @Entity
 @Table(name = "job")
+@Getter
+@Setter
+@NoArgsConstructor // Required by JPA
 public class Job {
 
   // Fields
   @Id
   @Column(name = "job_uuid", nullable = false, updatable = false)
+  @Setter(AccessLevel.NONE)
   private String jobUuid = UUID.randomUUID().toString();
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -45,8 +51,7 @@ public class Job {
   private List<Job> dependencies = new ArrayList<>();
 
   // Constructors
-  public Job() {}
-
+  // Constructor with all arguments except UUID
   public Job(
       String name,
       String description,
@@ -62,63 +67,7 @@ public class Job {
     this.template = template;
   }
 
-  // Getters & Setters
-  public String getJobUuid() {
-    return this.jobUuid;
-  }
-
-  public JobTemplate getTemplate() {
-    return this.template;
-  }
-
-  public void setTemplate(JobTemplate template) {
-    this.template = template;
-  }
-
-  public String getName() {
-    return this.name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getDescription() {
-    return this.description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public Duration getDuration() {
-    return this.duration;
-  }
-
-  public void setDuration(Duration duration) {
-    this.duration = duration;
-  }
-
-  public LocalDateTime getDeadline() {
-    return this.deadline;
-  }
-
-  public void setDeadline(LocalDateTime deadline) {
-    this.deadline = deadline;
-  }
-
-  public MachineType getRequiredMachineType() {
-    return this.requiredMachineType;
-  }
-
-  public void setRequiredMachineType(MachineType requiredMachineType) {
-    this.requiredMachineType = requiredMachineType;
-  }
-
-  public List<Job> getDependencies() {
-    return this.dependencies;
-  }
-
+  // Dependency helper
   public void addDependency(Job dependency) {
     this.dependencies.add(dependency);
   }
