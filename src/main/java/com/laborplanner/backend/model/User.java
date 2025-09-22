@@ -6,7 +6,7 @@ import lombok.*;
 
 // Lombok and JPA notation
 @Entity
-@Table(name = "user")
+@Table(name = "app_user")
 @Getter
 @Setter
 @NoArgsConstructor // Required by JPA
