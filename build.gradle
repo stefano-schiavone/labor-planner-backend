@@ -10,7 +10,7 @@ description = 'Spring Boot Backend for Labor Planner Application'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(24)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -27,6 +27,9 @@ dependencies {
    // Lombok
    compileOnly 'org.projectlombok:lombok:1.18.42'
    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+
+   // PostgreSQL
+   implementation 'org.postgresql:postgresql:42.6.0'
 
    // Lombok Tests
    testCompileOnly 'org.projectlombok:lombok:1.18.42'
