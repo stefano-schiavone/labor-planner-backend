@@ -10,7 +10,11 @@ description = 'Spring Boot Backend for Labor Planner Application'
 
 java {
 	toolchain {
+<<<<<<< HEAD
 		languageVersion = JavaLanguageVersion.of(21)
+=======
+		languageVersion = JavaLanguageVersion.of(25)
+>>>>>>> 052b9eb (Fix version to 25)
 	}
 }
 
