@@ -2,11 +2,11 @@ HELP.md
 .gradle
 .env
 build/
-/build/
+/builds/
 /.gradle/
 !gradle/wrapper/gradle-wrapper.jar
-# !**/src/main/**/build/
-# !**/src/test/**/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
 ### STS ###
 .apt_generated
