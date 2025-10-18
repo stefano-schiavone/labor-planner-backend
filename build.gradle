@@ -10,11 +10,7 @@ description = 'Spring Boot Backend for Labor Planner Application'
 
 java {
 	toolchain {
-<<<<<<< HEAD
 		languageVersion = JavaLanguageVersion.of(21)
-=======
-		languageVersion = JavaLanguageVersion.of(25)
->>>>>>> 052b9eb (Fix version to 25)
 	}
 }
 
@@ -23,7 +19,14 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter'
+   // Core Spring Boot
+   implementation 'org.springframework.boot:spring-boot-starter'
+
+   // Spring Web (for @Controller, REST endpoints, and serving HTML)
+   implementation 'org.springframework.boot:spring-boot-starter-web'
+
+   // Thymeleaf (for server-side HTML templates)
+   implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
    // Spring Data JPA
    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -34,6 +37,9 @@ dependencies {
 
    // PostgreSQL
    implementation 'org.postgresql:postgresql:42.6.0'
+
+   // H2 Database
+   testImplementation 'com.h2database:h2'
 
    // Lombok Tests
    testCompileOnly 'org.projectlombok:lombok:1.18.42'

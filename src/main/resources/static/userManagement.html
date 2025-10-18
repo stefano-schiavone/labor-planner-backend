@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User CRUD</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #ccc;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+      input,
+      select,
+      button {
+        padding: 5px;
+        margin: 5px 0;
+      }
+      .form-group {
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>User Management</h1>
+
+    <h2>Create / Update User</h2>
+    <form id="userForm">
+      <input type="hidden" id="userUuid" />
+      <div class="form-group">
+        <label for="name">First Name:</label>
+        <input type="text" id="name" required />
+      </div>
+      <div class="form-group">
+        <label for="lastName">Last Name:</label>
+        <input type="text" id="lastName" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" required />
+      </div>
+      <div class="form-group">
+        <label for="type">Account Type:</label>
+        <select id="type" required>
+          <option value="">Select Type</option>
+          <option value="ADMIN">Admin</option>
+          <option value="USER">User</option>
+          <option value="GUEST">Guest</option>
+        </select>
+      </div>
+      <button type="submit">Save User</button>
+    </form>
+
+    <h2>Users List</h2>
+    <table id="usersTable">
+      <thead>
+        <tr>
+          <th>UUID</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Email</th>
+          <th>Account Type</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Users will be populated here -->
+      </tbody>
+    </table>
+
+    <script>
+      let users = [];
+
+      const userForm = document.getElementById("userForm");
+      const usersTable = document
+        .getElementById("usersTable")
+        .querySelector("tbody");
+
+      function renderUsers() {
+        usersTable.innerHTML = "";
+        users.forEach((user) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+          <td>${user.userUuid}</td>
+          <td>${user.name}</td>
+          <td>${user.lastName}</td>
+          <td>${user.email}</td>
+          <td>${user.type}</td>
+          <td>
+            <button onclick="editUser('${user.userUuid}')">Edit</button>
+            <button onclick="deleteUser('${user.userUuid}')">Delete</button>
+          </td>
+        `;
+          usersTable.appendChild(row);
+        });
+      }
+
+      function editUser(uuid) {
+        const user = users.find((u) => u.userUuid === uuid);
+        if (user) {
+          document.getElementById("userUuid").value = user.userUuid;
+          document.getElementById("name").value = user.name;
+          document.getElementById("lastName").value = user.lastName;
+          document.getElementById("email").value = user.email;
+          document.getElementById("type").value = user.type;
+        }
+      }
+
+      function deleteUser(uuid) {
+        users = users.filter((u) => u.userUuid !== uuid);
+        renderUsers();
+      }
+
+      userForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const userUuid = document.getElementById("userUuid").value;
+        const name = document.getElementById("name").value;
+        const lastName = document.getElementById("lastName").value;
+        const email = document.getElementById("email").value;
+        const type = document.getElementById("type").value;
+
+        if (userUuid) {
+          // Update existing user
+          const user = users.find((u) => u.userUuid === userUuid);
+          user.name = name;
+          user.lastName = lastName;
+          user.email = email;
+          user.type = type;
+        } else {
+          // Create new user
+          users.push({
+            userUuid: crypto.randomUUID(),
+            name,
+            lastName,
+            email,
+            type,
+          });
+        }
+
+        userForm.reset();
+        renderUsers();
+      });
+
+      // Initial render
+      renderUsers();
+    </script>
+  </body>
+</html>
