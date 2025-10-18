@@ -1,0 +1,87 @@
+stages:
+  - build
+  - test
+  - package
+  - deploy
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  # tells Gradle where to keep its cache (by default it’s in ~/.gradle, but I move it inside the project directory so GitLab can cache it).
+  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+
+# helps speed up builds
+cache:
+  # means the cache is scoped for each branch
+  key: "$CI_COMMIT_REF_SLUG"
+  # It saves these folders
+  paths:
+    - .gradle/wrapper
+    - .gradle/caches
+
+before_script:
+  # This line does the same as
+  # GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  # But include it as a fallback in case some runner is on another environment that doesn't know the first one. (It's best practice)
+  - export GRADLE_USER_HOME=$(pwd)/.gradle
+  - chmod +x gradlew
+
+build:
+  stage: build
+  script:
+    # Excludes tests. I use this instead of ".gradlew assemble" because it cleans (so safer). "Assemble" is recommended for small local CI pipelines, that we don't want to overload, ideally this will run remotely
+    - ./gradlew clean build -x test
+  artifacts:
+    # Here it stores built JAR files (build/libs/*.jar), so later stages (like deploy) can access them.
+    paths:
+      - build/libs/*.jar
+    expire_in: 1 week
+  rules:
+    # I wanted fast feedback before I make a merge request
+    # run on every branch push (except main)
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+      when: always
+    # run on merge request events
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    # also run on main branch
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+
+test:
+  stage: test
+  script:
+    - ./gradlew test
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/TEST-*.xml
+
+# package:
+#   stage: package
+#   image: docker:latest
+#   services:
+#     - docker:dind
+#   script:
+#     - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+#     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+#   only:
+#     - main
+
+# deploy:
+#   stage: deploy
+#   image: alpine:latest
+#   script:
+#     - echo "Deploying to server..."
+#     - apk add --no-cache openssh
+#     - ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "
+#         docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA &&
+#         docker stop myapp || true &&
+#         docker rm myapp || true &&
+#         docker run -d -p 8080:8080 --name myapp $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+#       "
+#   environment:
+#     name: production
+#     url: https://your-app.example.com
+#   only:
+#     - main
+
