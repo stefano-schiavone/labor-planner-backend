@@ -1,15 +1,16 @@
 stages:
   - build
   - test
-  - package
-  - deploy
+  - staging
+  # - package
+  # - deploy
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-  # tells Gradle where to keep its cache (by default it’s in ~/.gradle, but I move it inside the project directory so GitLab can cache it).
+  # Tells Gradle where to keep its cache (by default it’s in ~/.gradle, but I move it inside the project directory so GitLab can cache it).
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
 
-# helps speed up builds
+# Helps speed up builds
 cache:
   # means the cache is scoped for each branch
   key: "$CI_COMMIT_REF_SLUG"
@@ -49,12 +50,21 @@ build:
 
 test:
   stage: test
+  variables:
+    SPRING_PROFILES_ACTIVE: test
   script:
     - ./gradlew test
   artifacts:
     when: always
     reports:
       junit: build/test-results/test/TEST-*.xml
+
+staging:
+  stage: staging
+  variables:
+    SPRING_PROFILES_ACTIVE: staging
+  script:
+    - ./gradlew bootRun
 
 # package:
 #   stage: package
