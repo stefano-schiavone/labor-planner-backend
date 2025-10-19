@@ -1,7 +1,5 @@
-# Dockerfile (multi-stage, optimized)
-# Stage 1: builder (optional — we will build JAR in CI, so we only need a small runtime image)
-# Stage 2: runtime
-FROM eclipse-temurin:17-jdk-jammy AS runtime
+# Use Java 21 runtime
+FROM eclipse-temurin:21-jdk-jammy AS runtime
 WORKDIR /app
 
 # Copy the runnable jar produced by Gradle
