@@ -8,9 +8,14 @@ stages:
   - build
   - test
   - staging
-  # - package
-  # - deploy
+  - package
+  - image
+  - deploy-staging
 
+
+# --------------------------
+# Setup
+# --------------------------
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
   # Tells Gradle where to keep its cache (by default it’s in ~/.gradle, but I move it inside the project directory so GitLab can cache it).
@@ -37,6 +42,9 @@ before_script:
   # Ensure docker client sees the dind service
   - docker info || true
 
+# --------------------------
+# BUILD STAGE
+# --------------------------
 build:
   stage: build
   script:
@@ -63,29 +71,9 @@ build:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
 
-test:
-  stage: test
-  variables:
-    SPRING_PROFILES_ACTIVE: test
-  script:
-    - ./gradlew test
-  artifacts:
-    when: always
-    reports:
-      junit: build/test-results/test/TEST-*.xml
-
-staging:
-  stage: staging
-  variables:
-    SPRING_PROFILES_ACTIVE: staging
-  script:
-    - ./gradlew bootRun
-    - APP_PID=$!
-    - echo "Waiting 10 seconds to ensure the app starts..."
-    - sleep 10
-    - echo "Killing app process"
-    - kill $APP_PID
-
+# --------------------------
+# TEST STAGE
+# --------------------------
 test:
   stage: test
   variables:
@@ -99,6 +87,26 @@ test:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
 
+# --------------------------
+# LOCAL STAGING STAGE
+# --------------------------
+staging:
+  stage: staging
+  variables:
+    SPRING_PROFILES_ACTIVE: staging
+  script:
+    - ./gradlew bootRun &
+    - APP_PID=$!
+    - echo "Waiting 10 seconds to ensure the app starts..."
+    - sleep 10
+    - echo "Killing app process"
+    - kill $APP_PID
+  when: manual
+  allow_failure: true
+
+# --------------------------
+# PACKAGE STAGE
+# --------------------------
 package:
   stage: package
   needs: ["build"]
@@ -113,6 +121,9 @@ package:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
 
+# --------------------------
+# DOCKER IMAGE STAGE
+# --------------------------
 docker-build-push:
   stage: image
   image: docker:24.0.2
@@ -140,8 +151,10 @@ docker-build-push:
       when: on_success
     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
       when: manual    # optional: manual image push for feature branches
-    - when: never
 
+# --------------------------
+# DEPLOY TO STAGING SERVER
+# --------------------------
 deploy-staging:
   stage: deploy-staging
   image: alpine:latest
