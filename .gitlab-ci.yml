@@ -1,3 +1,9 @@
+image: docker:24.0.2
+
+services:
+  - name: docker:24.0.2-dind
+    alias: docker
+
 stages:
   - build
   - test
@@ -9,6 +15,9 @@ variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
   # Tells Gradle where to keep its cache (by default it’s in ~/.gradle, but I move it inside the project directory so GitLab can cache it).
   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+  DOCKER_TLS_CERTDIR: ""   # disable TLS to keep dind simple; set if you prefer TLS
+  # Tag name for image (branch-based)
+  IMAGE_TAG: "$CI_COMMIT_REF_SLUG"
 
 # Helps speed up builds
 cache:
@@ -25,6 +34,8 @@ before_script:
   # But include it as a fallback in case some runner is on another environment that doesn't know the first one. (It's best practice)
   - export GRADLE_USER_HOME=$(pwd)/.gradle
   - chmod +x gradlew
+  # Ensure docker client sees the dind service
+  - docker info || true
 
 build:
   stage: build
@@ -36,6 +47,10 @@ build:
     paths:
       - build/libs/*.jar
     expire_in: 1 week
+  cache:
+    policy: pull-push
+    paths:
+      - .gradle/
   rules:
     # I wanted fast feedback before I make a merge request
     # run on every branch push (except main)
@@ -65,33 +80,90 @@ staging:
     SPRING_PROFILES_ACTIVE: staging
   script:
     - ./gradlew bootRun
+    - APP_PID=$!
+    - echo "Waiting 10 seconds to ensure the app starts..."
+    - sleep 10
+    - echo "Killing app process"
+    - kill $APP_PID
 
-# package:
-#   stage: package
-#   image: docker:latest
-#   services:
-#     - docker:dind
-#   script:
-#     - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
-#     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-#   only:
-#     - main
+test:
+  stage: test
+  variables:
+    SPRING_PROFILES_ACTIVE: test
+  script:
+    - ./gradlew test
+  artifacts:
+    when: always
+    reports:
+      junit: build/test-results/test/TEST-*.xml
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
 
-# deploy:
-#   stage: deploy
-#   image: alpine:latest
-#   script:
-#     - echo "Deploying to server..."
-#     - apk add --no-cache openssh
-#     - ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "
-#         docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA &&
-#         docker stop myapp || true &&
-#         docker rm myapp || true &&
-#         docker run -d -p 8080:8080 --name myapp $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-#       "
-#   environment:
-#     name: production
-#     url: https://your-app.example.com
-#   only:
-#     - main
+package:
+  stage: package
+  needs: ["build"]
+  script:
+    - echo "Package stage — artifact already created in build job."
+  dependencies:
+    - build
+  artifacts:
+    paths:
+      - build/libs/*.jar
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
 
+docker-build-push:
+  stage: image
+  image: docker:24.0.2
+  services:
+    - name: docker:24.0.2-dind
+  variables:
+    # Use GitLab registry (change if using another)
+    IMAGE: "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
+  needs:
+    - job: package
+      artifacts: true
+  script:
+    - echo "Logging into registry $CI_REGISTRY"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$IMAGE" .
+    - docker push "$IMAGE"
+    - echo "Pushed $IMAGE"
+  artifacts:
+    expire_in: 1 week
+  rules:
+    # only build/push images on merge requests and main branch (tweak as needed)
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: on_success
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+      when: manual    # optional: manual image push for feature branches
+    - when: never
+
+deploy-staging:
+  stage: deploy-staging
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client bash
+  script:
+    # This job demonstrates an SSH deploy (see explanation below). It will:
+    # - connect to your staging server, pull the new image, stop/remove old container, run new one
+    - mkdir -p ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts || true
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh -o StrictHostKeyChecking=yes $STAGING_SSH_USER@$STAGING_SSH_HOST "
+        docker login -u '$CI_REGISTRY_USER' -p '$CI_REGISTRY_PASSWORD' $CI_REGISTRY &&
+        docker pull $CI_REGISTRY_IMAGE:$IMAGE_TAG &&
+        docker ps -a --filter 'name=app-staging' --format '{{.ID}}' | grep -q . && docker stop app-staging || true &&
+        docker rm -f app-staging || true &&
+        docker run -d --name app-staging -p 8089:8080 --env SPRING_PROFILES_ACTIVE=staging $CI_REGISTRY_IMAGE:$IMAGE_TAG
+      "
+  environment:
+    name: staging
+    url: "http://$STAGING_SSH_HOST:8089"
+  when: manual
+  only:
+    - main

@@ -2,6 +2,7 @@ HELP.md
 .gradle
 .env
 build/
+cache/
 /builds/
 /.gradle/
 !gradle/wrapper/gradle-wrapper.jar
