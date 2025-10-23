@@ -154,7 +154,9 @@ docker-build-push:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - docker build -t "$IMAGE" .
     - docker push "$IMAGE"
-    - echo "Docker image pushed: $IMAGE"
+    - echo "Docker image pushed:"
+    - echo "$IMAGE"
+    - echo "------------------------"
   artifacts:
     expire_in: 1 week
   rules:
