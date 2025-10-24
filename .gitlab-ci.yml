@@ -47,8 +47,6 @@ before_script:
 # =========================================================
 build:
   stage: build
-  tags:
-    - VM-Runner
   image: gradle:8.14.3-jdk21-jammy   # I use Gradle + JDK image for build
   script:
     - ./gradlew clean build -x test  # Build the JAR but skip tests (faster)
