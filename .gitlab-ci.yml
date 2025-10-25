@@ -157,17 +157,16 @@ docker-build-push:
   services:
     - name: docker:24.0.2-dind
   variables:
-    IMAGE: "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
+    PRIVATE_REGISTRY: "$STAGING_SSH_HOST:5000"
+    IMAGE: "$PRIVATE_REGISTRY/labor-planner-backend:$IMAGE_TAG"
   needs:
     - job: package
       artifacts: true
   script:
-    - echo "Logging into GitLab registry"
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - export IMAGE="$(echo "$CI_REGISTRY_IMAGE" | tr '[:upper:]' '[:lower:]'):$IMAGE_TAG"
-    - echo "Building Docker image:"
+    - echo "Building Docker image for private registry:"
     - echo $IMAGE
     - docker build -t "$IMAGE" .
+    - echo "Pushing to private registry..."
     - docker push "$IMAGE"
     - echo "Docker image pushed:"
     - echo $IMAGE
@@ -192,16 +191,11 @@ deploy-staging:
   before_script:
     - apk add --no-cache openssh-client bash
   script:
-    - mkdir -p ~/.ssh
-    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts || true
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
     - ssh -o StrictHostKeyChecking=yes $STAGING_SSH_USER@$STAGING_SSH_HOST "
-        docker login -u '$CI_REGISTRY_USER' -p '$CI_REGISTRY_PASSWORD' $CI_REGISTRY &&
-        docker pull $CI_REGISTRY_IMAGE:$IMAGE_TAG &&
+        docker pull $STAGING_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG &&
         docker ps -a --filter 'name=app-staging' --format '{{.ID}}' | grep -q . && docker stop app-staging || true &&
         docker rm -f app-staging || true &&
-        docker run -d --name app-staging -p 8089:8080 --env SPRING_PROFILES_ACTIVE=staging $CI_REGISTRY_IMAGE:$IMAGE_TAG"
+        docker run -d --name app-staging -p 8089:8080 --env SPRING_PROFILES_ACTIVE=staging $STAGING_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG"
   environment:
     name: staging
     url: "http://$STAGING_SSH_HOST:8089"
