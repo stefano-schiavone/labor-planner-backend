@@ -80,11 +80,12 @@ test:
   image: eclipse-temurin:21-jdk-jammy
   variables:
     SPRING_PROFILES_ACTIVE: test
-  script:
+  before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
     - ./gradlew test
   artifacts:
-    when: on_success
+    when: always
     reports:
       junit: build/test-results/test/TEST-*.xml
   rules:
