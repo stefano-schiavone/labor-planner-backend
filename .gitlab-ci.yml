@@ -71,7 +71,7 @@ build:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
 
-push-image-ui:
+mirror-docker-image:
   stage: image
   image: docker:24.0.2
   services:
@@ -82,7 +82,8 @@ push-image-ui:
     - docker tag eclipse-temurin:21-jdk-jammy $CI_REGISTRY_IMAGE:temurin-test
     - docker push $CI_REGISTRY_IMAGE:temurin-test
   rules:
-    - when: manual
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
+  needs: []
 
 
 # =========================================================
