@@ -24,6 +24,7 @@ variables:
   # Required for Docker-in-Docker
   DOCKER_TLS_CERTDIR: ""
   IMAGE_TAG: "$CI_COMMIT_REF_SLUG"
+  DOCKER_PULL_POLICY: if-not-present  # prevent rate-limit pulls
 
 # =========================================================
 # Cache Settings
@@ -77,13 +78,6 @@ build:
 test:
   stage: test
   image: eclipse-temurin:21-jdk-jammy
-  services:
-    - name: postgres:15-alpine
-      alias: db
-      variables:
-        POSTGRES_DB: testdb
-        POSTGRES_USER: test
-        POSTGRES_PASSWORD: test
   variables:
     SPRING_PROFILES_ACTIVE: test
   script:
@@ -104,19 +98,20 @@ staging:
   stage: staging
   image: openjdk:21-jdk-jammy
   services:
-    - name: postgres:15-alpine
+    - name: postgres:15.14-alpine3.22
       alias: postgres-staging
       variables:
         POSTGRES_DB: stagingdb
         POSTGRES_USER: staging
         POSTGRES_PASSWORD: staging
+        POSTGRES_HOST_AUTH_METHOD: scram-sha-256
   variables:
     SPRING_PROFILES_ACTIVE: staging
+    DB_HOST: postgres-staging
+    DB_PORT: 5432
     POSTGRES_DB: stagingdb
     POSTGRES_USER: staging
     POSTGRES_PASSWORD: staging
-    DB_HOST: postgres-staging
-    DB_PORT: 5432
   script:
     - ./gradlew bootRun &
     - APP_PID=$!
