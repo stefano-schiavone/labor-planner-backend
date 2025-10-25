@@ -96,7 +96,7 @@ test:
 # Each staging container is isolated from other stages (industry best practice)
 staging:
   stage: staging
-  image: openjdk:21-jdk-jammy
+  image: gradle:8.14.3-jdk21-jammy
   services:
     - name: postgres:15.14-alpine3.22
       alias: postgres-staging
