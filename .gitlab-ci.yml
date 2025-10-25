@@ -24,7 +24,16 @@ variables:
   # Required for Docker-in-Docker
   DOCKER_TLS_CERTDIR: ""
   IMAGE_TAG: "$CI_COMMIT_REF_SLUG"
-  DOCKER_PULL_POLICY: if-not-present  # prevent rate-limit pulls
+  DOCKER_PULL_POLICY: if-not-present  # Only goes to Docker Hub if images aren't present
+  DOCKER_AUTH_CONFIG: >
+    {
+      "auths": {
+        "https://index.docker.io/v1/": {
+          "username": "$CI_REGISTRY_USER",
+          "password": "$CI_REGISTRY_PASSWORD"
+        }
+      }
+    }
 
 # =========================================================
 # Cache Settings
