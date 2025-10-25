@@ -84,7 +84,7 @@ test:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - ./gradlew test
   artifacts:
-    when: always
+    when: on_success
     reports:
       junit: build/test-results/test/TEST-*.xml
   rules:
