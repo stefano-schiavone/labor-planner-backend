@@ -161,10 +161,13 @@ docker-build-push:
     - echo "Logging into GitLab registry"
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - export IMAGE="$(echo "$CI_REGISTRY_IMAGE" | tr '[:upper:]' '[:lower:]'):$IMAGE_TAG"
-    - echo "Building Docker image: $IMAGE"
+    - echo "Building Docker image:"
+    - echo $IMAGE
     - docker build -t "$IMAGE" .
     - docker push "$IMAGE"
-    - echo "Docker image pushed: $IMAGE"
+    - echo "Docker image pushed:"
+    - echo $IMAGE
+    - echo "----------------------"
   artifacts:
     expire_in: 1 week
   rules:
