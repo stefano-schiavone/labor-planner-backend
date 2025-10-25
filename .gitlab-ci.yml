@@ -79,7 +79,7 @@ test:
   image: eclipse-temurin:21-jdk-jammy
   services:
     - name: postgres:15-alpine
-      aalias: db
+      alias: db
       variables:
         POSTGRES_DB: testdb
         POSTGRES_USER: test
