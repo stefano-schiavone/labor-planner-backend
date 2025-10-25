@@ -77,7 +77,7 @@ build:
 # I use H2 DB in memory because it's lightweight and fast
 test:
   stage: test
-  image: eclipse-temurin:21-jdk-jammy
+  image: gradle:8.14.3-jdk21-jammy
   variables:
     SPRING_PROFILES_ACTIVE: test
   script:
