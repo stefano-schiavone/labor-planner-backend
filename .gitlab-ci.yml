@@ -158,6 +158,8 @@ docker-build-push:
     - name: docker:24.0.2-dind
       command: ["--insecure-registry=192.168.120.4:5000"]
   variables:
+    DOCKER_HOST: tcp://docker:2375   # <-- Force the job container talk to DinD
+    DOCKER_TLS_CERTDIR: ""           # <-- Disable TLS inside DinD
     PRIVATE_REGISTRY: "$STAGING_SSH_HOST:5000"
     IMAGE: "$PRIVATE_REGISTRY/labor-planner-backend:$IMAGE_TAG"
   needs:
@@ -168,8 +170,6 @@ docker-build-push:
     - docker build -t "$IMAGE" .
     - docker push "$IMAGE"
     - echo "Pushing to private registry..."
-    - docker push "$IMAGE"
-    - echo "Docker image pushed:"
     - echo $IMAGE
     - echo "----------------------"
   artifacts:
