@@ -156,6 +156,7 @@ docker-build-push:
   image: docker:24.0.2
   services:
     - name: docker:24.0.2-dind
+      command: ["--insecure-registry=192.168.120.4:5000"]
   variables:
     PRIVATE_REGISTRY: "$STAGING_SSH_HOST:5000"
     IMAGE: "$PRIVATE_REGISTRY/labor-planner-backend:$IMAGE_TAG"
@@ -164,7 +165,6 @@ docker-build-push:
       artifacts: true
   script:
     - echo "Building Docker image for private registry:"
-    # - docker login -u "$PRIVATE_REGISTRY_USER" --password-stdin
     - docker build -t "$IMAGE" .
     - docker push "$IMAGE"
     - echo "Pushing to private registry..."
