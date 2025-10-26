@@ -1,5 +1,5 @@
 # Image
-FROM 192.168.120.4:5000/eclipse-temurin:21-jdk-jammy AS runtime
+FROM eclipse-temurin:21-jdk-jammy AS runtime
 WORKDIR /app
 
 # Copy the runnable jar produced by Gradle
