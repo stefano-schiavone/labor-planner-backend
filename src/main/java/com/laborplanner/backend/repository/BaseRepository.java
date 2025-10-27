@@ -7,8 +7,8 @@ import jakarta.persistence.PersistenceContext;
 import java.util.List;
 import java.util.Optional;
 
-public abstract class BaseRepository<E, ID, M, MAPPER extends BaseMapper<M, E>>
-    implements BaseRepositoryCustom<E, ID, M, MAPPER> {
+public abstract class BaseRepository<E, UUID, M, MAPPER extends BaseMapper<M, E>>
+    implements BaseRepositoryCustom<E, UUID, M, MAPPER> {
 
   @PersistenceContext protected EntityManager em;
 
@@ -32,8 +32,8 @@ public abstract class BaseRepository<E, ID, M, MAPPER extends BaseMapper<M, E>>
   }
 
   @Override
-  public Optional<M> findById(ID id) {
-    E entity = em.find(entityClass, id);
+  public Optional<M> findByUuid(UUID uuid) {
+    E entity = em.find(entityClass, uuid);
     return Optional.ofNullable(entity).map(mapper::toModel);
   }
 
@@ -48,15 +48,15 @@ public abstract class BaseRepository<E, ID, M, MAPPER extends BaseMapper<M, E>>
   }
 
   @Override
-  public void deleteById(ID id) {
-    E entity = em.find(entityClass, id);
+  public void deleteByUuid(UUID uuid) {
+    E entity = em.find(entityClass, uuid);
     if (entity != null) {
       em.remove(entity);
     }
   }
 
   @Override
-  public boolean existsById(ID id) {
-    return em.find(entityClass, id) != null;
+  public boolean existsByUuid(UUID uuid) {
+    return em.find(entityClass, uuid) != null;
   }
 }
