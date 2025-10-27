@@ -13,11 +13,17 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class MachineTypeRepository implements MachineTypeRepositoryCustom {
+public class MachineTypeRepository
+    extends BaseRepository<MachineTypeEntity, String, MachineType, MachineTypeMapper>
+    implements MachineTypeRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
   private final MachineTypeMapper mapper = MachineTypeMapper.INSTANCE;
+
+  public MachineTypeRepository() {
+    super(MachineTypeEntity.class, MachineTypeMapper.INSTANCE);
+  }
 
   @Override
   public Optional<MachineType> findByName(String name) {

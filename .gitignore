@@ -1,4 +1,5 @@
 HELP.md
+.jdtls-workspace/
 .gradle
 .env
 build/

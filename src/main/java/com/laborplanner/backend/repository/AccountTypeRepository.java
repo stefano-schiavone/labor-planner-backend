@@ -13,11 +13,17 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class AccountTypeRepository implements AccountTypeRepositoryCustom {
+public class AccountTypeRepository
+    extends BaseRepository<AccountTypeEntity, String, AccountType, AccountTypeMapper>
+    implements AccountTypeRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
   private final AccountTypeMapper mapper = AccountTypeMapper.INSTANCE;
+
+  public AccountTypeRepository() {
+    super(AccountTypeEntity.class, AccountTypeMapper.INSTANCE);
+  }
 
   @Override
   public Optional<AccountType> findByName(String name) {
