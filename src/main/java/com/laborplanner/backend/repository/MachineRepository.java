@@ -3,29 +3,80 @@ package com.laborplanner.backend.repository;
 import com.laborplanner.backend.model.Machine;
 import com.laborplanner.backend.model.MachineStatus;
 import com.laborplanner.backend.model.MachineType;
+import com.laborplanner.backend.repository.custom.MachineRepositoryCustom;
+import com.laborplanner.backend.repository.entity.MachineEntity;
+import com.laborplanner.backend.repository.mapper.MachineMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface MachineRepository extends JpaRepository<Machine, String> {
+public class MachineRepository extends BaseRepository<MachineEntity, String, Machine, MachineMapper>
+    implements MachineRepositoryCustom {
 
-  // Find machine by exact name
-  Optional<Machine> findByName(String name);
+  @PersistenceContext private EntityManager em;
 
-  // Check if a machine with a given name exists
-  boolean existsByName(String name);
+  private final MachineMapper mapper = MachineMapper.INSTANCE;
 
-  // Find all machines of a given type
-  List<Machine> findByType(MachineType type);
+  public MachineRepository() {
+    super(MachineEntity.class, MachineMapper.INSTANCE);
+  }
 
-  // Find all machines with a given status
-  List<Machine> findByStatus(MachineStatus status);
+  @Override
+  public Optional<Machine> findByName(String name) {
+    TypedQuery<MachineEntity> query =
+        em.createQuery("SELECT m FROM MachineEntity m WHERE m.name = :name", MachineEntity.class);
+    query.setParameter("name", name);
+    return query.getResultStream().findFirst().map(mapper::toModel);
+  }
 
-  // Find all machines of a type and status (e.g., "CNC" + "Available")
-  List<Machine> findByTypeAndStatus(MachineType type, MachineStatus status);
+  @Override
+  public boolean existsByName(String name) {
+    TypedQuery<Long> query =
+        em.createQuery("SELECT COUNT(m) FROM MachineEntity m WHERE m.name = :name", Long.class);
+    query.setParameter("name", name);
+    Long count = query.getSingleResult();
+    return count != null && count > 0;
+  }
 
-  // List all machines ordered alphabetically
-  List<Machine> findAllByOrderByNameAsc();
+  @Override
+  public List<Machine> findByType(MachineType type) {
+    TypedQuery<MachineEntity> query =
+        em.createQuery(
+            "SELECT m FROM MachineEntity m WHERE m.type.name = :typeName", MachineEntity.class);
+    query.setParameter("typeName", type.getName());
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Machine> findByStatus(MachineStatus status) {
+    TypedQuery<MachineEntity> query =
+        em.createQuery(
+            "SELECT m FROM MachineEntity m WHERE m.status.name = :statusName", MachineEntity.class);
+    query.setParameter("statusName", status.getName());
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Machine> findByTypeAndStatus(MachineType type, MachineStatus status) {
+    TypedQuery<MachineEntity> query =
+        em.createQuery(
+            "SELECT m FROM MachineEntity m WHERE m.type.name = :typeName AND m.status.name ="
+                + " :statusName",
+            MachineEntity.class);
+    query.setParameter("typeName", type.getName());
+    query.setParameter("statusName", status.getName());
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<Machine> findAllByOrderByNameAsc() {
+    TypedQuery<MachineEntity> query =
+        em.createQuery("SELECT m FROM MachineEntity m ORDER BY m.name ASC", MachineEntity.class);
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
 }

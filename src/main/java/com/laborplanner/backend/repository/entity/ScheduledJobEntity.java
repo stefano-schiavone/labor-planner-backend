@@ -1,0 +1,38 @@
+package com.laborplanner.backend.repository.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import lombok.*;
+
+// Lombok and JPA notation
+@Entity
+@Table(name = "scheduled_job")
+@Getter
+@Setter
+@NoArgsConstructor // Required by JPA
+public class ScheduledJobEntity {
+
+  // Fields
+  @Id
+  @Column(name = "scheduled_job_uuid", nullable = false, updatable = false)
+  private String scheduledJobUuid = UUID.randomUUID().toString();
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "schedule_uuid", nullable = false)
+  private ScheduleEntity schedule;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "job_uuid", nullable = false)
+  private JobEntity job;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "machine_uuid", nullable = false)
+  private MachineEntity machine;
+
+  @Column(name = "start_time", nullable = false)
+  private LocalDateTime startTime;
+
+  @Column(name = "end_time", nullable = false)
+  private LocalDateTime endTime;
+}
