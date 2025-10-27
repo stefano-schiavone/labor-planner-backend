@@ -13,11 +13,17 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class MachineStatusRepository implements MachineStatusRepositoryCustom {
+public class MachineStatusRepository
+    extends BaseRepository<MachineStatusEntity, String, MachineStatus, MachineStatusMapper>
+    implements MachineStatusRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
   private final MachineStatusMapper mapper = MachineStatusMapper.INSTANCE;
+
+  public MachineStatusRepository() {
+    super(MachineStatusEntity.class, MachineStatusMapper.INSTANCE);
+  }
 
   @Override
   public Optional<MachineStatus> findByName(String name) {

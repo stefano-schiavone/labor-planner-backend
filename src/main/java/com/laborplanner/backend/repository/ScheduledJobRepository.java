@@ -16,11 +16,17 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class ScheduledJobRepository implements ScheduledJobRepositoryCustom {
+public class ScheduledJobRepository
+    extends BaseRepository<ScheduledJobEntity, String, ScheduledJob, ScheduledJobMapper>
+    implements ScheduledJobRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
   private final ScheduledJobMapper mapper = ScheduledJobMapper.INSTANCE;
+
+  public ScheduledJobRepository() {
+    super(ScheduledJobEntity.class, ScheduledJobMapper.INSTANCE);
+  }
 
   @Override
   public List<ScheduledJob> findBySchedule(Schedule schedule) {

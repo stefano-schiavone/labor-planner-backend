@@ -15,11 +15,17 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JobTemplateRepository implements JobTemplateRepositoryCustom {
+public class JobTemplateRepository
+    extends BaseRepository<JobTemplateEntity, String, JobTemplate, JobTemplateMapper>
+    implements JobTemplateRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
   private final JobTemplateMapper mapper = JobTemplateMapper.INSTANCE;
+
+  public JobTemplateRepository() {
+    super(JobTemplateEntity.class, JobTemplateMapper.INSTANCE);
+  }
 
   @Override
   public Optional<JobTemplate> findByName(String name) {

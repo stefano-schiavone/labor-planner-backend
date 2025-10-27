@@ -11,11 +11,16 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class UserRepository implements UserRepositoryCustom {
+public class UserRepository extends BaseRepository<UserEntity, String, User, UserMapper>
+    implements UserRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
   private final UserMapper mapper = UserMapper.INSTANCE;
+
+  public UserRepository() {
+    super(UserEntity.class, UserMapper.INSTANCE);
+  }
 
   @Override
   public Optional<User> findByEmail(String email) {

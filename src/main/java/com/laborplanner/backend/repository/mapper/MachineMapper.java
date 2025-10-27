@@ -1,4 +1,4 @@
-package com.laborplanner.backend.mapper;
+package com.laborplanner.backend.repository.mapper;
 
 import com.laborplanner.backend.model.Machine;
 import com.laborplanner.backend.repository.entity.MachineEntity;
@@ -9,7 +9,7 @@ import org.mapstruct.factory.Mappers;
 @Mapper(
     componentModel = "spring",
     uses = {MachineTypeMapper.class, MachineStatusMapper.class})
-public interface MachineMapper {
+public interface MachineMapper extends BaseMapper<Machine, MachineEntity> {
 
   MachineMapper INSTANCE = Mappers.getMapper(MachineMapper.class);
 

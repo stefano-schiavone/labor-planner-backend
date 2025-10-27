@@ -1,4 +1,4 @@
-package com.laborplanner.backend.repository.entity
+package com.laborplanner.backend.repository.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-package com.laborplanner.backend.mapper;
+package com.laborplanner.backend.repository.mapper;
 
 import com.laborplanner.backend.model.Job;
 import com.laborplanner.backend.repository.entity.JobEntity;
@@ -10,7 +10,7 @@ import org.mapstruct.factory.Mappers;
 @Mapper(
     componentModel = "spring",
     uses = {JobTemplateMapper.class, MachineTypeMapper.class})
-public interface JobMapper {
+public interface JobMapper extends BaseMapper<Job, JobEntity> {
 
   JobMapper INSTANCE = Mappers.getMapper(JobMapper.class);
 
