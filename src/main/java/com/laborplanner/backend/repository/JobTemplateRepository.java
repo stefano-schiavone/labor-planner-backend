@@ -3,26 +3,72 @@ package com.laborplanner.backend.repository;
 import com.laborplanner.backend.model.JobTemplate;
 import com.laborplanner.backend.model.MachineType;
 import com.laborplanner.backend.model.User;
+import com.laborplanner.backend.repository.custom.JobTemplateRepositoryCustom;
+import com.laborplanner.backend.repository.entity.JobTemplateEntity;
+import com.laborplanner.backend.repository.mapper.JobTemplateMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface JobTemplateRepository extends JpaRepository<JobTemplate, String> {
+public class JobTemplateRepository implements JobTemplateRepositoryCustom {
 
-  // Find template by exact name
-  Optional<JobTemplate> findByName(String name);
+  @PersistenceContext private EntityManager em;
 
-  // Check if a template with a given name exists
-  boolean existsByName(String name);
+  private final JobTemplateMapper mapper = JobTemplateMapper.INSTANCE;
 
-  // Find all templates for a given machine type
-  List<JobTemplate> findByRequiredMachineType(MachineType machineType);
+  @Override
+  public Optional<JobTemplate> findByName(String name) {
+    TypedQuery<JobTemplateEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            JobTemplateEntity.class);
+    query.setParameter("name", name);
+    return query.getResultStream().findFirst().map(mapper::toModel);
+  }
 
-  // Find all templates created by a specific user
-  List<JobTemplate> findByCreatedByUser(User user);
+  @Override
+  public boolean existsByName(String name) {
+    TypedQuery<Long> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            Long.class);
+    query.setParameter("name", name);
+    Long count = query.getSingleResult();
+    return count != null && count > 0;
+  }
 
-  // List all templates ordered alphabetically
-  List<JobTemplate> findAllByOrderByNameAsc();
+  @Override
+  public List<JobTemplate> findByRequiredMachineType(MachineType machineType) {
+    TypedQuery<JobTemplateEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            JobTemplateEntity.class);
+    query.setParameter("machineType", machineType);
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<JobTemplate> findByCreatedByUser(User user) {
+    TypedQuery<JobTemplateEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            JobTemplateEntity.class);
+    query.setParameter("user", user);
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<JobTemplate> findAllByOrderByNameAsc() {
+    TypedQuery<JobTemplateEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            JobTemplateEntity.class);
+    List<JobTemplateEntity> entities = query.getResultList();
+    return entities.stream().map(mapper::toModel).collect(Collectors.toList());
+  }
 }
