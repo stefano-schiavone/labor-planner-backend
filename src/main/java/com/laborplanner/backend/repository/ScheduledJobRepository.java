@@ -4,27 +4,82 @@ import com.laborplanner.backend.model.Job;
 import com.laborplanner.backend.model.Machine;
 import com.laborplanner.backend.model.Schedule;
 import com.laborplanner.backend.model.ScheduledJob;
+import com.laborplanner.backend.repository.custom.ScheduledJobRepositoryCustom;
+import com.laborplanner.backend.repository.entity.ScheduledJobEntity;
+import com.laborplanner.backend.repository.mapper.ScheduledJobMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ScheduledJobRepository extends JpaRepository<ScheduledJob, String> {
+public class ScheduledJobRepository
+    extends BaseRepository<ScheduledJobEntity, String, ScheduledJob, ScheduledJobMapper>
+    implements ScheduledJobRepositoryCustom {
 
-  // Find all jobs in a given schedule
-  List<ScheduledJob> findBySchedule(Schedule schedule);
+  @PersistenceContext private EntityManager em;
 
-  // Find all jobs assigned to a machine
-  List<ScheduledJob> findByMachine(Machine machine);
+  private final ScheduledJobMapper mapper = ScheduledJobMapper.INSTANCE;
 
-  // Find all jobs of a specific job type
-  List<ScheduledJob> findByJob(Job job);
+  public ScheduledJobRepository() {
+    super(ScheduledJobEntity.class, ScheduledJobMapper.INSTANCE);
+  }
 
-  // Check if a machine is busy during a time period
-  boolean existsByMachineAndStartTimeBeforeAndEndTimeAfter(
-      Machine machine, LocalDateTime end, LocalDateTime start);
+  @Override
+  public List<ScheduledJob> findBySchedule(Schedule schedule) {
+    TypedQuery<ScheduledJobEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            ScheduledJobEntity.class);
+    query.setParameter("schedule", schedule);
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
 
-  // Find all jobs scheduled in a time range
-  List<ScheduledJob> findByStartTimeBetween(LocalDateTime start, LocalDateTime end);
+  @Override
+  public List<ScheduledJob> findByMachine(Machine machine) {
+    TypedQuery<ScheduledJobEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            ScheduledJobEntity.class);
+    query.setParameter("machine", machine);
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
+
+  @Override
+  public List<ScheduledJob> findByJob(Job job) {
+    TypedQuery<ScheduledJobEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            ScheduledJobEntity.class);
+    query.setParameter("job", job);
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
+
+  @Override
+  public boolean existsByMachineAndStartTimeBeforeAndEndTimeAfter(
+      Machine machine, LocalDateTime end, LocalDateTime start) {
+    TypedQuery<Long> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            Long.class);
+    query.setParameter("machine", machine);
+    query.setParameter("end", end);
+    query.setParameter("start", start);
+    Long count = query.getSingleResult();
+    return count != null && count > 0;
+  }
+
+  @Override
+  public List<ScheduledJob> findByStartTimeBetween(LocalDateTime start, LocalDateTime end) {
+    TypedQuery<ScheduledJobEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            ScheduledJobEntity.class);
+    query.setParameter("start", start);
+    query.setParameter("end", end);
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+  }
 }

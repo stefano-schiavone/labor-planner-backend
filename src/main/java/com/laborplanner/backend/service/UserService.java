@@ -26,7 +26,7 @@ public class UserService implements IUserService, IUserAuthService, IUserTokenSe
   @Override
   public User getUserByUuid(String userUuid) {
     return userRepository
-        .findById(userUuid)
+        .findByUuid(userUuid)
         .orElseThrow(() -> new RuntimeException("User not found with UUID: " + userUuid));
   }
 
@@ -35,7 +35,7 @@ public class UserService implements IUserService, IUserAuthService, IUserTokenSe
     String uuid = user.getUserUuid();
     User existingUser =
         userRepository
-            .findById(uuid)
+            .findByUuid(uuid)
             .orElseThrow(() -> new RuntimeException("User not found with UUID: " + uuid));
 
     existingUser.setName(user.getName());
@@ -48,10 +48,10 @@ public class UserService implements IUserService, IUserAuthService, IUserTokenSe
 
   @Override
   public void deleteUser(String userUuid) {
-    if (!userRepository.existsById(userUuid)) {
+    if (!userRepository.existsByUuid(userUuid)) {
       throw new RuntimeException("User not found with UUID: " + userUuid);
     }
-    userRepository.deleteById(userUuid);
+    userRepository.deleteByUuid(userUuid);
   }
 
   @Override

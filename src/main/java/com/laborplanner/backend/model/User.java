@@ -1,34 +1,22 @@
 package com.laborplanner.backend.model;
 
-import jakarta.persistence.*;
 import java.util.UUID;
 import lombok.*;
 
-// Lombok and JPA notation
-@Entity
-@Table(name = "app_user")
 @Getter
 @Setter
-@NoArgsConstructor // Required by JPA
 public class User {
 
   // Fields
-  @Id
-  @Column(name = "user_uuid", nullable = false, updatable = false)
   @Setter(AccessLevel.NONE)
   private String userUuid = UUID.randomUUID().toString();
 
-  @Column(name = "name", nullable = false)
   private String name;
 
-  @Column(name = "last_name", nullable = false)
   private String lastName;
 
-  @Column(name = "email", nullable = false, unique = true)
   private String email;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "account_type_uuid", nullable = false)
   private AccountType type;
 
   // Constructors
@@ -38,5 +26,9 @@ public class User {
     this.lastName = lastName;
     this.email = email;
     this.type = type;
+  }
+
+  public void changeName(String name) {
+    this.setName(name);
   }
 }

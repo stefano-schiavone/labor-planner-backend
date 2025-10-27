@@ -35,8 +35,17 @@ dependencies {
    compileOnly 'org.projectlombok:lombok:1.18.42'
    annotationProcessor 'org.projectlombok:lombok:1.18.42'
 
+   // MapStruct
+   implementation 'org.mapstruct:mapstruct:1.6.3'
+   annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
    // PostgreSQL
    implementation 'org.postgresql:postgresql:42.6.0'
+
+   // Swagger
+   implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'   
+   implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+   implementation 'jakarta.el:jakarta.el-api:6.0.1'
 
    // H2 Database
    testImplementation 'com.h2database:h2'
@@ -49,6 +58,26 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+tasks.withType(JavaCompile) {
+    options.annotationProcessorPath = configurations.annotationProcessor
+    options.compilerArgs += ['-parameters']
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// For loading .env file
+bootRun {
+    doFirst {
+        def dotenvFile = file(".env")
+        if (dotenvFile.exists()) {
+            dotenvFile.eachLine { line ->
+                if (!line.startsWith("#") && line.contains("=")) {
+                    def (key, value) = line.split("=", 2)
+                    environment key.trim(), value.trim()
+                }
+            }
+        }
+    }
 }
