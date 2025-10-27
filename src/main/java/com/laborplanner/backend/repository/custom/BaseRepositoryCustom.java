@@ -5,21 +5,21 @@ import java.util.List;
 import java.util.Optional;
 
 // This base repository interfave defines all default methods. It wants the Entity and Model because
-// they will be mapped. The mapper to map them and the ID type string
-public interface BaseRepositoryCustom<E, ID, M, MAPPER extends BaseMapper<M, E>> {
+// they will be mapped. The mapper to map them and the UUID type string
+public interface BaseRepositoryCustom<E, UUID, M, MAPPER extends BaseMapper<M, E>> {
 
   // Create or update a model
   M save(M model);
 
-  // Find a model by ID
-  Optional<M> findById(ID id);
+  // Find a model by UUID
+  Optional<M> findByUuid(UUID uuid);
 
   // Get all models
   List<M> findAll();
 
-  // Delete a model (by its entity ID)
-  void deleteById(ID id);
+  // Delete a model (by its entity UUID)
+  void deleteByUuid(UUID uuid);
 
   // Check if a record exists
-  boolean existsById(ID id);
+  boolean existsByUuid(UUID uuid);
 }

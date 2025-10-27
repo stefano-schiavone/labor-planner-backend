@@ -29,9 +29,7 @@ public class MachineRepository extends BaseRepository<MachineEntity, String, Mac
   @Override
   public Optional<Machine> findByName(String name) {
     TypedQuery<MachineEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            MachineEntity.class);
+        em.createQuery("SELECT m FROM MachineEntity m WHERE m.name = :name", MachineEntity.class);
     query.setParameter("name", name);
     return query.getResultStream().findFirst().map(mapper::toModel);
   }
@@ -39,9 +37,7 @@ public class MachineRepository extends BaseRepository<MachineEntity, String, Mac
   @Override
   public boolean existsByName(String name) {
     TypedQuery<Long> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            Long.class);
+        em.createQuery("SELECT COUNT(m) FROM MachineEntity m WHERE m.name = :name", Long.class);
     query.setParameter("name", name);
     Long count = query.getSingleResult();
     return count != null && count > 0;
@@ -51,9 +47,8 @@ public class MachineRepository extends BaseRepository<MachineEntity, String, Mac
   public List<Machine> findByType(MachineType type) {
     TypedQuery<MachineEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            MachineEntity.class);
-    query.setParameter("type", type);
+            "SELECT m FROM MachineEntity m WHERE m.type.name = :typeName", MachineEntity.class);
+    query.setParameter("typeName", type.getName());
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 
@@ -61,9 +56,8 @@ public class MachineRepository extends BaseRepository<MachineEntity, String, Mac
   public List<Machine> findByStatus(MachineStatus status) {
     TypedQuery<MachineEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            MachineEntity.class);
-    query.setParameter("status", status);
+            "SELECT m FROM MachineEntity m WHERE m.status.name = :statusName", MachineEntity.class);
+    query.setParameter("statusName", status.getName());
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 
@@ -71,20 +65,18 @@ public class MachineRepository extends BaseRepository<MachineEntity, String, Mac
   public List<Machine> findByTypeAndStatus(MachineType type, MachineStatus status) {
     TypedQuery<MachineEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
+            "SELECT m FROM MachineEntity m WHERE m.type.name = :typeName AND m.status.name ="
+                + " :statusName",
             MachineEntity.class);
-    query.setParameter("type", type);
-    query.setParameter("status", status);
+    query.setParameter("typeName", type.getName());
+    query.setParameter("statusName", status.getName());
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 
   @Override
   public List<Machine> findAllByOrderByNameAsc() {
     TypedQuery<MachineEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            MachineEntity.class);
-    List<MachineEntity> entities = query.getResultList();
-    return entities.stream().map(mapper::toModel).collect(Collectors.toList());
+        em.createQuery("SELECT m FROM MachineEntity m ORDER BY m.name ASC", MachineEntity.class);
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 }
