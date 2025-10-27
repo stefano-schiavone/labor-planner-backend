@@ -35,6 +35,10 @@ dependencies {
    compileOnly 'org.projectlombok:lombok:1.18.42'
    annotationProcessor 'org.projectlombok:lombok:1.18.42'
 
+   // MapStruct
+   implementation 'org.mapstruct:mapstruct:1.6.15.Final'
+   annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.15.Final'
+
    // PostgreSQL
    implementation 'org.postgresql:postgresql:42.6.0'
 
@@ -47,6 +51,11 @@ dependencies {
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile) {
+    options.annotationProcessorPath = configurations.annotationProcessor
+    options.compilerArgs += ['-parameters']
 }
 
 tasks.named('test') {

@@ -1,20 +1,44 @@
 package com.laborplanner.backend.repository;
 
 import com.laborplanner.backend.model.AccountType;
+import com.laborplanner.backend.repository.custom.AccountTypeRepositoryCustom;
+import com.laborplanner.backend.repository.entity.AccountTypeEntity;
+import com.laborplanner.backend.repository.mapper.AccountTypeMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface AccountTypeRepository extends JpaRepository<AccountType, String> {
+public class AccountTypeRepository implements AccountTypeRepositoryCustom {
 
-  // Find by exact name
-  Optional<AccountType> findByName(String name);
+  @PersistenceContext private EntityManager em;
 
-  // Check if an account type already exists
-  boolean existsByName(String name);
+  private final AccountTypeMapper mapper = AccountTypeMapper.INSTANCE;
 
-  // Get all account types in alphabetical order
-  List<AccountType> findAllByOrderByNameAsc();
+  @Override
+  public Optional<AccountType> findByName(String name) {
+    TypedQuery<AccountTypeEntity> query =
+        em.createQuery(
+            "SELECT a FROM AccountTypeEntity a WHERE a.name = :name", AccountTypeEntity.class);
+    query.setParameter("name", name);
+    return query.getResultStream().findFirst().map(mapper::toModel);
+  }
+
+  @Override
+  public boolean existsByName(String name) {
+    return false;
+  }
+
+  @Override
+  public List<AccountType> findAllByOrderByNameAsc() {
+    TypedQuery<AccountTypeEntity> query =
+        em.createQuery(
+            "SELECT a FROM AccountTypeEntity a ORDER BY a.name ASC", AccountTypeEntity.class);
+    List<AccountTypeEntity> entities = query.getResultList();
+    return entities.stream().map(mapper::toModel).collect(Collectors.toList());
+  }
 }

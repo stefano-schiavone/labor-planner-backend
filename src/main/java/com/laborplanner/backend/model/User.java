@@ -3,7 +3,6 @@ package com.laborplanner.backend.model;
 import java.util.UUID;
 import lombok.*;
 
-// Lombok and JPA notation
 @Getter
 @Setter
 public class User {
@@ -27,5 +26,9 @@ public class User {
     this.lastName = lastName;
     this.email = email;
     this.type = type;
+  }
+
+  public void changeName(String name) {
+    this.setName(name);
   }
 }

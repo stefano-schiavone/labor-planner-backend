@@ -1,20 +1,52 @@
 package com.laborplanner.backend.repository;
 
 import com.laborplanner.backend.model.MachineStatus;
+import com.laborplanner.backend.repository.custom.MachineStatusRepositoryCustom;
+import com.laborplanner.backend.repository.entity.MachineStatusEntity;
+import com.laborplanner.backend.repository.mapper.MachineStatusMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface MachineStatusRepository extends JpaRepository<MachineStatus, String> {
+public class MachineStatusRepository implements MachineStatusRepositoryCustom {
 
-  // Find a status by name (e.g., "Available", "Maintenance", etc.)
-  Optional<MachineStatus> findByName(String name);
+  @PersistenceContext private EntityManager em;
 
-  // Check if a status exists
-  boolean existsByName(String name);
+  private final MachineStatusMapper mapper = MachineStatusMapper.INSTANCE;
 
-  // Get all statuses in alphabetical order
-  List<MachineStatus> findAllByOrderByNameAsc();
+  @Override
+  public Optional<MachineStatus> findByName(String name) {
+    TypedQuery<MachineStatusEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            MachineStatusEntity.class);
+    query.setParameter("name", name);
+    return query.getResultStream().findFirst().map(mapper::toModel);
+  }
+
+  @Override
+  public boolean existsByName(String name) {
+    TypedQuery<Long> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            Long.class);
+    query.setParameter("name", name);
+    Long count = query.getSingleResult();
+    return count != null && count > 0;
+  }
+
+  @Override
+  public List<MachineStatus> findAllByOrderByNameAsc() {
+    TypedQuery<MachineStatusEntity> query =
+        em.createQuery(
+            "", // <-- SQL/HQL query goes here
+            MachineStatusEntity.class);
+    List<MachineStatusEntity> entities = query.getResultList();
+    return entities.stream().map(mapper::toModel).collect(Collectors.toList());
+  }
 }
