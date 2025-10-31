@@ -193,24 +193,37 @@ docker-build-push:
 # Deploy to Production Server
 # =========================================================
 # This connects via SSH and runs the latest Docker image
+# deploy-production:
+#    stage: deploy-production
+#    image: alpine:latest
+#    before_script:
+#       - apk add --no-cache openssh-client bash
+#       - mkdir -p ~/.ssh
+#       - echo "$PROD_KNOWN_HOSTS" > ~/.ssh/known_hosts
+#       - echo "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+#       - chmod 600 ~/.ssh/id_ed25519
+#    script:
+#       - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST "
+#         docker pull $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG &&
+#         docker ps -a --filter 'name=app-prod' --format '{{.ID}}' | grep -q . && docker stop app-prod || true &&
+#         docker rm -f app-prod || true &&
+#         docker run -d --name app-prod -p 8080:8080 --env SPRING_PROFILES_ACTIVE=prod $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG"
+#    environment:
+#       name: production
+#       url: "http://$PROD_SSH_HOST:8080"
+#    rules:
+#       - if: '$CI_COMMIT_BRANCH == "main"'
+#         when: manual # manual trigger only on main
+
+# TEMPORARY
 deploy-production:
-   stage: deploy-production
-   image: alpine:latest
-   before_script:
-      - apk add --no-cache openssh-client bash
-      - mkdir -p ~/.ssh
-      - echo "$PROD_KNOWN_HOSTS" > ~/.ssh/known_hosts
-      - echo "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
-      - chmod 600 ~/.ssh/id_ed25519
-   script:
-      - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST "
-        docker pull $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG &&
-        docker ps -a --filter 'name=app-prod' --format '{{.ID}}' | grep -q . && docker stop app-prod || true &&
-        docker rm -f app-prod || true &&
-        docker run -d --name app-prod -p 8080:8080 --env SPRING_PROFILES_ACTIVE=prod $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG"
-   environment:
-      name: production
-      url: "http://$PROD_SSH_HOST:8080"
-   rules:
-      - if: '$CI_COMMIT_BRANCH == "main"'
-        when: manual # manual trigger only on main
+  stage: deploy-production
+  image: alpine:latest
+  script:
+    - echo "Checking if PROD_SSH_PRIVATE_KEY is visible:"
+    - if [ -z "$PROD_SSH_PRIVATE_KEY" ]; then echo "❌ EMPTY or not injected"; else echo "✅ Key variable is set"; fi
+    - echo "Done"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+
