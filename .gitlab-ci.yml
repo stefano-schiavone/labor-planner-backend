@@ -203,18 +203,19 @@ deploy-production:
       - echo "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
       - chmod 600 ~/.ssh/id_ed25519
    script:
-      - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST <<'EOF'
+      - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST <<EOF
          docker pull 192.168.120.4:5000/labor-planner-backend:$CI_COMMIT_REF_SLUG
          docker stop app-prod || true
          docker rm -f app-prod || true
          docker run -d --name app-prod -p 8080:8080 --restart always \
-        --env SPRING_PROFILES_ACTIVE=prod \
-        --env PROD_DB_URL=$PROD_DB_URL \
-        --env PROD_DB_USER=$PROD_DB_USER \
-        --env PROD_DB_PASSWORD=$PROD_DB_PASSWORD \
-        --env SERVER_ADDRESS=0.0.0.0 \
-        192.168.120.4:5000/labor-planner-backend:$CI_COMMIT_REF_SLUG
+         --env SPRING_PROFILES_ACTIVE=prod \
+         --env PROD_DB_URL=$PROD_DB_URL \
+         --env PROD_DB_USER=$PROD_DB_USER \
+         --env PROD_DB_PASSWORD=$PROD_DB_PASSWORD \
+         --env SERVER_ADDRESS=0.0.0.0 \
+         192.168.120.4:5000/labor-planner-backend:$CI_COMMIT_REF_SLUG
          EOF
+
 
    environment:
       name: production
