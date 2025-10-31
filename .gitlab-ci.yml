@@ -206,10 +206,10 @@ deploy-production:
       - chmod 600 ~/.ssh/id_ed25519 
    script: 
       - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST \
-         "docker pull $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG && \
-         docker ps -a --filter 'name=app-prod' --format '{{.ID}}' | grep -q . && docker stop app-prod || true && \
-         docker rm -f app-prod || true && \
-         docker run -d --name app-prod -p 8080:8080 \
+         "/usr/bin/docker pull $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG && \
+         /usr/bin/docker ps -a --filter 'name=app-prod' --format '{{.ID}}' | grep -q . && /usr/bin/docker stop app-prod || true && \
+         /usr/bin/docker rm -f app-prod || true && \
+         /usr/bin/docker run -d --name app-prod -p 8080:8080 \
          --env SPRING_PROFILES_ACTIVE=prod \
          --env PROD_DB_URL='$PROD_DB_URL' \
          --env PROD_DB_USER='$PROD_DB_USER' \
