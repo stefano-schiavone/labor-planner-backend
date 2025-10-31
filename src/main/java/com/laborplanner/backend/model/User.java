@@ -5,6 +5,7 @@ import lombok.*;
 
 @Getter
 @Setter
+@Data
 public class User {
 
   // Fields
