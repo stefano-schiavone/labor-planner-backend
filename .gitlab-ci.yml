@@ -12,7 +12,7 @@ stages:
    - staging # Run staging environment (PostgreSQL DB)
    - package # Package artifacts for Docker image
    - image # Build & push Docker image
-   - deploy-production # Deploy to production server
+   - deploy-production # Deploy to staging server
 
 # =========================================================
 # Global Variables
@@ -203,8 +203,11 @@ deploy-production:
       - echo "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
       - chmod 600 ~/.ssh/id_ed25519
    script:
-      - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST \
-         "PROD_DB_URL='$PROD_DB_URL' PROD_DB_USER='$PROD_DB_USER' PROD_DB_PASSWORD='$PROD_DB_PASSWORD' bash /home/student/deploy.sh $CI_COMMIT_REF_SLUG"
+      - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST "
+        docker pull $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG &&
+        docker ps -a --filter 'name=app-prod' --format '{{.ID}}' | grep -q . && docker stop app-prod || true &&
+        docker rm -f app-prod || true &&
+        docker run -d --name app-prod -p 8080:8080 --env SPRING_PROFILES_ACTIVE=prod $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG"
    environment:
       name: production
       url: "http://$PROD_SSH_HOST:8080"
