@@ -203,4 +203,11 @@ deploy-production:
       - echo "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
       - chmod 600 ~/.ssh/id_ed25519
    script:
-      - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST "bash /home/student/deploy.sh $CI_COMMIT_REF_SLUG"
+      - ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST \
+         "PROD_DB_URL='$PROD_DB_URL' PROD_DB_USER='$PROD_DB_USER' PROD_DB_PASSWORD='$PROD_DB_PASSWORD' bash /home/student/deploy.sh $CI_COMMIT_REF_SLUG"
+   environment:
+      name: production
+      url: "http://$PROD_SSH_HOST:8080"
+   rules:
+      - if: '$CI_COMMIT_BRANCH == "main"'
+        when: manual # manual trigger only on main
