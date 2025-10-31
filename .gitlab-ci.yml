@@ -12,7 +12,7 @@ stages:
    - staging # Run staging environment (PostgreSQL DB)
    - package # Package artifacts for Docker image
    - image # Build & push Docker image
-   - deploy-staging # Deploy to staging server
+   - deploy-production # Deploy to production server
 
 # =========================================================
 # Global Variables
