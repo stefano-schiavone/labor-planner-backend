@@ -7,96 +7,96 @@
 # =========================================================
 
 stages:
-  - build        # Compile the code and build JAR
-  - test         # Run unit/integration tests (H2 DB)
-  - staging      # Run staging environment (PostgreSQL DB)
-  - package      # Package artifacts for Docker image
-  - image        # Build & push Docker image
-  - deploy-staging # Deploy to staging server
+   - build # Compile the code and build JAR
+   - test # Run unit/integration tests (H2 DB)
+   - staging # Run staging environment (PostgreSQL DB)
+   - package # Package artifacts for Docker image
+   - image # Build & push Docker image
+   - deploy-staging # Deploy to staging server
 
 # =========================================================
 # Global Variables
 # =========================================================
 variables:
-  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-  # I keep Gradle cache inside the project so it can be cached by GitLab
-  GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
-  # Required for Docker-in-Docker
-  DOCKER_TLS_CERTDIR: ""
-  IMAGE_TAG: "$CI_COMMIT_REF_SLUG"
-  DOCKER_PULL_POLICY: if-not-present  # Only goes to Docker Hub if images aren't present
-  DOCKER_AUTH_CONFIG: >
-    {
-      "auths": {
-        "https://index.docker.io/v1/": {
-          "username": "$CI_REGISTRY_USER",
-          "password": "$CI_REGISTRY_PASSWORD"
+   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+   # I keep Gradle cache inside the project so it can be cached by GitLab
+   GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+   # Required for Docker-in-Docker
+   DOCKER_TLS_CERTDIR: ""
+   IMAGE_TAG: "$CI_COMMIT_REF_SLUG"
+   DOCKER_PULL_POLICY: if-not-present # Only goes to Docker Hub if images aren't present
+   DOCKER_AUTH_CONFIG: >
+      {
+        "auths": {
+          "https://index.docker.io/v1/": {
+            "username": "$CI_REGISTRY_USER",
+            "password": "$CI_REGISTRY_PASSWORD"
+          }
         }
       }
-    }
 
 # =========================================================
 # Cache Settings
 # =========================================================
 cache:
-  key: "$CI_COMMIT_REF_SLUG"  # Each branch gets its own cache
-  paths:
-    - .gradle/wrapper          # Gradle wrapper cache
-    - .gradle/caches           # Gradle dependency cache
+   key: "$CI_COMMIT_REF_SLUG" # Each branch gets its own cache
+   paths:
+      - .gradle/wrapper # Gradle wrapper cache
+      - .gradle/caches # Gradle dependency cache
 
 # =========================================================
 # Before Script
 # =========================================================
 before_script:
-  - export GRADLE_USER_HOME=$(pwd)/.gradle
-  - chmod +x gradlew
-  - docker info || true  # Verify Docker is accessible (DinD)
+   - export GRADLE_USER_HOME=$(pwd)/.gradle
+   - chmod +x gradlew
+   - docker info || true # Verify Docker is accessible (DinD)
 
 # =========================================================
 # Build Stage
 # =========================================================
 build:
-  stage: build
-  image: gradle:8.14.3-jdk21-jammy   # I use Gradle + JDK image for build
-  script:
-    - ./gradlew clean build -x test  # Build the JAR but skip tests (faster)
-  artifacts:
-    paths:
-      - build/libs/*.jar   # Save the JAR for later stages
-    expire_in: 1 week
-  cache:
-    policy: pull-push
-    paths:
-      - .gradle/
-  rules:
-    # I wanted fast feedback before I make a merge request 
-    # run on every branch push (except main)
-    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-      when: always
-    # run on merge request events
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: always
-    # also run on main branch
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: always
+   stage: build
+   image: gradle:8.14.3-jdk21-jammy # I use Gradle + JDK image for build
+   script:
+      - ./gradlew clean build -x test # Build the JAR but skip tests (faster)
+   artifacts:
+      paths:
+         - build/libs/*.jar # Save the JAR for later stages
+      expire_in: 1 week
+   cache:
+      policy: pull-push
+      paths:
+         - .gradle/
+   rules:
+      # I wanted fast feedback before I make a merge request
+      # run on every branch push (except main)
+      - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+        when: always
+      # run on merge request events
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+        when: always
+      # also run on main branch
+      - if: '$CI_COMMIT_BRANCH == "main"'
+        when: always
 
 # =========================================================
 # Test Stage
 # =========================================================
 # I use H2 DB in memory because it's lightweight and fast
 test:
-  stage: test
-  image: eclipse-temurin:21-jdk-jammy
-  variables:
-    SPRING_PROFILES_ACTIVE: test
-  script:
-    - ./gradlew test
-  artifacts:
-    when: always
-    reports:
-      junit: build/test-results/test/TEST-*.xml
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
+   stage: test
+   image: eclipse-temurin:21-jdk-jammy
+   variables:
+      SPRING_PROFILES_ACTIVE: test
+   script:
+      - ./gradlew test
+   artifacts:
+      when: always
+      reports:
+         junit: build/test-results/test/TEST-*.xml
+   rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
 
 # =========================================================
 # Staging Stage
@@ -104,102 +104,106 @@ test:
 # I want this stage to run in its own container with PostgreSQL
 # Each staging container is isolated from other stages (industry best practice)
 staging:
-  stage: staging
-  image: gradle:8.14.3-jdk21-jammy
-  services:
-    - name: postgres:15.14-alpine3.22
-      alias: postgres-staging
-      variables:
-        POSTGRES_DB: stagingdb
-        POSTGRES_USER: staging
-        POSTGRES_PASSWORD: staging
-        POSTGRES_HOST_AUTH_METHOD: scram-sha-256
-  variables:
-    SPRING_PROFILES_ACTIVE: staging
-    DB_HOST: postgres-staging
-    DB_PORT: 5432
-    POSTGRES_DB: stagingdb
-    POSTGRES_USER: staging
-    POSTGRES_PASSWORD: staging
-  script:
-    - ./gradlew bootRun &
-    - APP_PID=$!
-    - echo "Waiting 15 seconds to ensure app connects to PostgreSQL..."
-    - sleep 15
-    - echo "Stopping app process"
-    - kill $APP_PID
-  when: manual
-  allow_failure: true
+   stage: staging
+   image: gradle:8.14.3-jdk21-jammy
+   services:
+      - name: postgres:15.14-alpine3.22
+        alias: postgres-staging
+        variables:
+           POSTGRES_DB: stagingdb
+           POSTGRES_USER: staging
+           POSTGRES_PASSWORD: staging
+   variables:
+      SPRING_PROFILES_ACTIVE: staging
+   script:
+      - ./gradlew bootRun &
+      - APP_PID=$!
+      - echo "Waiting 15 seconds to ensure app connects to PostgreSQL..."
+      - sleep 15
+      - echo "Stopping app process"
+      - kill $APP_PID
+   rules:
+     # Run on merge requests
+     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+       when: on_success
+     # Run on all branches except main
+     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+       when: on_success
+     # skip main branch
+     - if: '$CI_COMMIT_BRANCH == "main"'
+       when: never
 
 # =========================================================
 # Package Stage
 # =========================================================
 package:
-  stage: package
-  needs: ["build"]
-  script:
-    - echo "Artifacts already built in build stage"
-  dependencies:
-    - build
-  artifacts:
-    paths:
-      - build/libs/*.jar
-    expire_in: 1 week
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
+   stage: package
+   needs: ["build"]
+   script:
+      - echo "Artifacts already built in build stage"
+   dependencies:
+      - build
+   artifacts:
+      paths:
+         - build/libs/*.jar
+      expire_in: 1 week
+   rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH'
 
 # =========================================================
 # Docker Image Stage
 # =========================================================
 docker-build-push:
-  stage: image
-  image: docker:24.0.2
-  services:
-    - name: docker:24.0.2-dind
-      command: ["--insecure-registry=192.168.120.4:5000"]
-  variables:
-    DOCKER_HOST: tcp://docker:2375   # <-- Force the job container talk to DinD
-    DOCKER_TLS_CERTDIR: ""           # <-- Disable TLS inside DinD
-    PRIVATE_REGISTRY: "$STAGING_SSH_HOST:5000"
-    IMAGE: "$PRIVATE_REGISTRY/labor-planner-backend:$IMAGE_TAG"
-  needs:
-    - job: package
-      artifacts: true
-  script:
-    - echo "Building Docker image for private registry:"
-    - docker build -t "$IMAGE" .
-    - docker push "$IMAGE"
-    - echo "Pushing to private registry..."
-    - echo $IMAGE
-    - echo "----------------------"
-  artifacts:
-    expire_in: 1 week
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: on_success
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: on_success
-    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-      when: manual
+   stage: image
+   image: docker:24.0.2
+   services:
+      - name: docker:24.0.2-dind
+        command: ["--insecure-registry=192.168.120.4:5000"]
+   variables:
+      DOCKER_HOST: tcp://docker:2375 # <-- Force the job container talk to DinD
+      DOCKER_TLS_CERTDIR: "" # <-- Disable TLS inside DinD
+      PRIVATE_REGISTRY: "$STAGING_SSH_HOST:5000"
+      IMAGE: "$PRIVATE_REGISTRY/labor-planner-backend:$IMAGE_TAG"
+   needs:
+      - job: package
+        artifacts: true
+   script:
+      - echo "Building Docker image for private registry:"
+      - docker build -t "$IMAGE" .
+      - docker push "$IMAGE"
+      - echo "Pushing to private registry..."
+      - echo $IMAGE
+      - echo "----------------------"
+   artifacts:
+      expire_in: 1 week
+   rules:
+      - if: '$CI_COMMIT_BRANCH == "main"'
+        when: on_success
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+        when: on_success
+      - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+        when: manual
 
 # =========================================================
-# Deploy to Staging Server
+# Deploy to Production Server
 # =========================================================
 # This connects via SSH and runs the latest Docker image
-deploy-staging:
-  stage: deploy-staging
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache openssh-client bash
-  script:
-    - ssh -o StrictHostKeyChecking=yes $STAGING_SSH_USER@$STAGING_SSH_HOST "
-        docker pull $STAGING_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG &&
-        docker ps -a --filter 'name=app-staging' --format '{{.ID}}' | grep -q . && docker stop app-staging || true &&
-        docker rm -f app-staging || true &&
-        docker run -d --name app-staging -p 8089:8080 --env SPRING_PROFILES_ACTIVE=staging $STAGING_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG"
-  environment:
-    name: staging
-    url: "http://$STAGING_SSH_HOST:8089"
-  when: manual
-  only:
-    - main
+deploy-production:
+   stage: deploy-staging # Keep as last stage after image
+   image: alpine:latest
+   before_script:
+      - apk add --no-cache openssh-client bash
+      - mkdir -p ~/.ssh
+      - echo "$PROD_KNOWN_HOSTS" > ~/.ssh/known_hosts
+   script:
+      - ssh -o StrictHostKeyChecking=yes $PROD_SSH_USER@$PROD_SSH_HOST "
+        docker pull $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG &&
+        docker ps -a --filter 'name=app-prod' --format '{{.ID}}' | grep -q . && docker stop app-prod || true &&
+        docker rm -f app-prod || true &&
+        docker run -d --name app-prod -p 8080:8080 --env SPRING_PROFILES_ACTIVE=prod $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG"
+   environment:
+      name: production
+      url: "http://$PROD_SSH_HOST:8080"
+   when: manual # Manual trigger to prevent accidental deploys
+   only:
+      - main
