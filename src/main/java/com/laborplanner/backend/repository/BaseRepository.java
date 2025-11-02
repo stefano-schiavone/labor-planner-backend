@@ -20,13 +20,16 @@ public abstract class BaseRepository<E, UUID, M, MAPPER extends BaseMapper<M, E>
     this.mapper = mapper;
   }
 
-  public M save(M model) {
+  public M create(M model) {
     E entity = mapper.toEntity(model);
-    if (!em.contains(entity)) {
-      entity = em.merge(entity);
-    } else {
-      em.persist(entity);
-    }
+    em.persist(entity);
+    em.flush();
+    return mapper.toModel(entity);
+  }
+
+  public M update(M model) {
+    E entity = mapper.toEntity(model);
+    entity = em.merge(entity);
     em.flush();
     return mapper.toModel(entity);
   }

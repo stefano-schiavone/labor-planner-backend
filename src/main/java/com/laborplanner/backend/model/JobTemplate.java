@@ -1,7 +1,6 @@
 package com.laborplanner.backend.model;
 
 import java.time.Duration;
-import java.util.UUID;
 import lombok.*;
 
 @Getter
@@ -9,8 +8,7 @@ import lombok.*;
 public class JobTemplate {
 
   // Fields
-  @Setter(AccessLevel.NONE)
-  private String jobTemplateUuid = UUID.randomUUID().toString();
+  private String jobTemplateUuid;
 
   private String name;
 

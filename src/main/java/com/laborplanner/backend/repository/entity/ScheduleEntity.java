@@ -15,8 +15,9 @@ public class ScheduleEntity {
 
   // Fields
   @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "schedule_uuid", nullable = false, updatable = false)
-  private String scheduleUuid = UUID.randomUUID().toString();
+  private UUID scheduleUuid;
 
   @Column(name = "week_start_date", nullable = false)
   private LocalDateTime weekStartDate;

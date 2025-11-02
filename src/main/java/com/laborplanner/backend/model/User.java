@@ -1,6 +1,5 @@
 package com.laborplanner.backend.model;
 
-import java.util.UUID;
 import lombok.*;
 
 @Getter
@@ -9,8 +8,7 @@ import lombok.*;
 public class User {
 
   // Fields
-  @Setter(AccessLevel.NONE)
-  private String userUuid = UUID.randomUUID().toString();
+  private String userUuid;
 
   private String name;
 

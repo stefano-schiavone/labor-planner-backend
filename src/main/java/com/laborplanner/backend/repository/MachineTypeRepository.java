@@ -29,8 +29,7 @@ public class MachineTypeRepository
   public Optional<MachineType> findByName(String name) {
     TypedQuery<MachineTypeEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            MachineTypeEntity.class);
+            "SELECT t FROM MachineTypeEntity t WHERE t.name = :name", MachineTypeEntity.class);
     query.setParameter("name", name);
     return query.getResultStream().findFirst().map(mapper::toModel);
   }
@@ -38,9 +37,7 @@ public class MachineTypeRepository
   @Override
   public boolean existsByName(String name) {
     TypedQuery<Long> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            Long.class);
+        em.createQuery("SELECT COUNT(t) FROM MachineTypeEntity t WHERE t.name = :name", Long.class);
     query.setParameter("name", name);
     Long count = query.getSingleResult();
     return count != null && count > 0;
@@ -50,8 +47,7 @@ public class MachineTypeRepository
   public List<MachineType> findAllByOrderByNameAsc() {
     TypedQuery<MachineTypeEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            MachineTypeEntity.class);
+            "SELECT t FROM MachineTypeEntity t ORDER BY t.name ASC", MachineTypeEntity.class);
     List<MachineTypeEntity> entities = query.getResultList();
     return entities.stream().map(mapper::toModel).collect(Collectors.toList());
   }
