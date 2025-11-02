@@ -1,5 +1,6 @@
 package com.laborplanner.backend.service;
 
+import com.laborplanner.backend.exception.user.UserNotFoundException;
 import com.laborplanner.backend.model.User;
 import com.laborplanner.backend.repository.UserRepository;
 import com.laborplanner.backend.service.interfaces.*;
@@ -18,35 +19,35 @@ public class UserService implements IUserService, IUserAuthService, IUserTokenSe
   // ---------------------------
   // IUserService Implementation
   // ---------------------------
-  @Override
+  // @Override
   public User createUser(User user) {
-    return userRepository.save(user);
+    return userRepository.create(user);
   }
 
-  @Override
+  // @Override
   public User getUserByUuid(String userUuid) {
     return userRepository
         .findByUuid(userUuid)
-        .orElseThrow(() -> new RuntimeException("User not found with UUID: " + userUuid));
+        .orElseThrow(() -> new UserNotFoundException(userUuid));
   }
 
-  @Override
-  public User updateUser(User user) {
-    String uuid = user.getUserUuid();
+  // @Override
+  public User updateUser(String uuid, User updatedUser) {
+    // Find existing user by UUID
     User existingUser =
-        userRepository
-            .findByUuid(uuid)
-            .orElseThrow(() -> new RuntimeException("User not found with UUID: " + uuid));
+        userRepository.findByUuid(uuid).orElseThrow(() -> new UserNotFoundException(uuid));
 
-    existingUser.setName(user.getName());
-    existingUser.setLastName(user.getLastName());
-    existingUser.setEmail(user.getEmail());
-    existingUser.setType(user.getType());
+    // Update fields
+    existingUser.setName(updatedUser.getName());
+    existingUser.setLastName(updatedUser.getLastName());
+    existingUser.setEmail(updatedUser.getEmail());
+    existingUser.setType(updatedUser.getType());
 
-    return userRepository.save(existingUser);
+    // Save and return
+    return userRepository.update(existingUser);
   }
 
-  @Override
+  // @Override
   public void deleteUser(String userUuid) {
     if (!userRepository.existsByUuid(userUuid)) {
       throw new RuntimeException("User not found with UUID: " + userUuid);
@@ -54,7 +55,7 @@ public class UserService implements IUserService, IUserAuthService, IUserTokenSe
     userRepository.deleteByUuid(userUuid);
   }
 
-  @Override
+  // @Override
   public List<User> getAllUsers() {
     return userRepository.findAll();
   }
@@ -62,14 +63,14 @@ public class UserService implements IUserService, IUserAuthService, IUserTokenSe
   // ---------------------------
   // IUserAuthService Implementation
   // ---------------------------
-  @Override
+  // @Override
   public User getUserByEmail(String email) {
     return userRepository
         .findByEmail(email)
         .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
   }
 
-  // Note: createUser() and updateUser() already implemented in IUserService
+  // Note: createUser() and updateUser() already implemented in section for IUserService
 
   // ---------------------------
   // IUserTokenService Implementation

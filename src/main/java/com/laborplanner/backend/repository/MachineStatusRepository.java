@@ -29,8 +29,7 @@ public class MachineStatusRepository
   public Optional<MachineStatus> findByName(String name) {
     TypedQuery<MachineStatusEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            MachineStatusEntity.class);
+            "SELECT s FROM MachineStatusEntity s WHERE s.name = :name", MachineStatusEntity.class);
     query.setParameter("name", name);
     return query.getResultStream().findFirst().map(mapper::toModel);
   }
@@ -39,8 +38,7 @@ public class MachineStatusRepository
   public boolean existsByName(String name) {
     TypedQuery<Long> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            Long.class);
+            "SELECT COUNT(s) FROM MachineStatusEntity s WHERE s.name = :name", Long.class);
     query.setParameter("name", name);
     Long count = query.getSingleResult();
     return count != null && count > 0;
@@ -50,8 +48,7 @@ public class MachineStatusRepository
   public List<MachineStatus> findAllByOrderByNameAsc() {
     TypedQuery<MachineStatusEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            MachineStatusEntity.class);
+            "SELECT s FROM MachineStatusEntity s ORDER BY s.name ASC", MachineStatusEntity.class);
     List<MachineStatusEntity> entities = query.getResultList();
     return entities.stream().map(mapper::toModel).collect(Collectors.toList());
   }

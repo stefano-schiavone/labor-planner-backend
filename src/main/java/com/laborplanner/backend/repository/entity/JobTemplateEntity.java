@@ -15,8 +15,9 @@ public class JobTemplateEntity {
 
   // Fields
   @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "job_template_uuid", nullable = false, updatable = false)
-  private String jobTemplateUuid = UUID.randomUUID().toString();
+  private UUID jobTemplateUuid;
 
   @Column(name = "name", nullable = false)
   private String name;

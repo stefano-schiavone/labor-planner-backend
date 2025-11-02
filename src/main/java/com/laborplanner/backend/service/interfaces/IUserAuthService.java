@@ -7,5 +7,5 @@ public interface IUserAuthService {
 
   User createUser(User user);
 
-  User updateUser(User user);
+  User updateUser(String uuid, User updatedUser);
 }

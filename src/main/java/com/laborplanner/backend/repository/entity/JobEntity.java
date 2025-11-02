@@ -18,8 +18,9 @@ public class JobEntity {
 
   // Fields
   @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "job_uuid", nullable = false, updatable = false)
-  private String jobUuid = UUID.randomUUID().toString();
+  private UUID jobUuid;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "job_template_uuid")

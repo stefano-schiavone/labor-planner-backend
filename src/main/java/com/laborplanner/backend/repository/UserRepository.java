@@ -25,9 +25,7 @@ public class UserRepository extends BaseRepository<UserEntity, String, User, Use
   @Override
   public Optional<User> findByEmail(String email) {
     TypedQuery<UserEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            UserEntity.class);
+        em.createQuery("SELECT u FROM UserEntity u WHERE u.email = :email", UserEntity.class);
     query.setParameter("email", email);
     return query.getResultStream().findFirst().map(mapper::toModel);
   }
@@ -35,9 +33,7 @@ public class UserRepository extends BaseRepository<UserEntity, String, User, Use
   @Override
   public boolean existsByEmail(String email) {
     TypedQuery<Long> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            Long.class);
+        em.createQuery("SELECT COUNT(u) FROM UserEntity u WHERE u.email = :email", Long.class);
     query.setParameter("email", email);
     Long count = query.getSingleResult();
     return count != null && count > 0;

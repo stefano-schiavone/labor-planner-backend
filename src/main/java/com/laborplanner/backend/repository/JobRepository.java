@@ -30,9 +30,7 @@ public class JobRepository extends BaseRepository<JobEntity, String, Job, JobMap
   @Override
   public Optional<Job> findByName(String name) {
     TypedQuery<JobEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            JobEntity.class);
+        em.createQuery("SELECT j FROM JobEntity j WHERE j.name = :name", JobEntity.class);
     query.setParameter("name", name);
     return query.getResultStream().findFirst().map(mapper::toModel);
   }
@@ -40,9 +38,7 @@ public class JobRepository extends BaseRepository<JobEntity, String, Job, JobMap
   @Override
   public boolean existsByName(String name) {
     TypedQuery<Long> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            Long.class);
+        em.createQuery("SELECT COUNT(j) FROM JobEntity j WHERE j.name = :name", Long.class);
     query.setParameter("name", name);
     Long count = query.getSingleResult();
     return count != null && count > 0;
@@ -50,21 +46,24 @@ public class JobRepository extends BaseRepository<JobEntity, String, Job, JobMap
 
   @Override
   public List<Job> findByTemplate(JobTemplate template) {
+    // Assuming JobTemplateEntity is linked through job_template_uuid
     TypedQuery<JobEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
+            "SELECT j FROM JobEntity j WHERE j.template.templateUuid = :templateUuid",
             JobEntity.class);
-    query.setParameter("template", template);
+    query.setParameter("templateUuid", template.getJobTemplateUuid());
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 
   @Override
   public List<Job> findByRequiredMachineType(MachineType machineType) {
+    // Assuming MachineTypeEntity is linked through required_machine_type_uuid
     TypedQuery<JobEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
+            "SELECT j FROM JobEntity j WHERE j.requiredMachineType.machineTypeUuid ="
+                + " :machineTypeUuid",
             JobEntity.class);
-    query.setParameter("machineType", machineType);
+    query.setParameter("machineTypeUuid", machineType.getMachineTypeUuid());
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 
@@ -72,7 +71,7 @@ public class JobRepository extends BaseRepository<JobEntity, String, Job, JobMap
   public List<Job> findByDeadlineBefore(LocalDateTime deadline) {
     TypedQuery<JobEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
+            "SELECT j FROM JobEntity j WHERE j.deadline < :deadline ORDER BY j.deadline ASC",
             JobEntity.class);
     query.setParameter("deadline", deadline);
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
@@ -82,7 +81,7 @@ public class JobRepository extends BaseRepository<JobEntity, String, Job, JobMap
   public List<Job> findByDeadlineAfter(LocalDateTime deadline) {
     TypedQuery<JobEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
+            "SELECT j FROM JobEntity j WHERE j.deadline > :deadline ORDER BY j.deadline ASC",
             JobEntity.class);
     query.setParameter("deadline", deadline);
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
@@ -91,9 +90,7 @@ public class JobRepository extends BaseRepository<JobEntity, String, Job, JobMap
   @Override
   public List<Job> findAllByOrderByDeadlineAsc() {
     TypedQuery<JobEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            JobEntity.class);
+        em.createQuery("SELECT j FROM JobEntity j ORDER BY j.deadline ASC", JobEntity.class);
     List<JobEntity> entities = query.getResultList();
     return entities.stream().map(mapper::toModel).collect(Collectors.toList());
   }

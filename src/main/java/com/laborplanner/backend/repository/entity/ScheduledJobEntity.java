@@ -15,8 +15,9 @@ public class ScheduledJobEntity {
 
   // Fields
   @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "scheduled_job_uuid", nullable = false, updatable = false)
-  private String scheduledJobUuid = UUID.randomUUID().toString();
+  private UUID scheduledJobUuid;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "schedule_uuid", nullable = false)
