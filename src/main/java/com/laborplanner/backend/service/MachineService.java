@@ -50,9 +50,9 @@ public class MachineService implements IMachineService {
       log.warn("Duplicate machine name attempted: {}", machine.getName());
       throw new DuplicateMachineNameException(machine.getName());
     }
-    Machine saved = machineRepository.save(machine);
-    log.info("Machine created successfully: uuid='{}'", saved.getMachineUuid());
-    return saved;
+    Machine created = machineRepository.create(machine);
+    log.info("Machine created successfully: uuid='{}'", created.getMachineUuid());
+    return created;
   }
 
   @Override
@@ -71,7 +71,7 @@ public class MachineService implements IMachineService {
     existing.setType(updatedMachine.getType());
     existing.setStatus(updatedMachine.getStatus());
 
-    Machine saved = machineRepository.save(existing);
+    Machine saved = machineRepository.update(existing);
     log.info("Machine updated successfully: uuid='{}'", saved.getMachineUuid());
 
     return saved;

@@ -14,8 +14,9 @@ public class UserEntity {
 
   // Fields
   @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "user_uuid", nullable = false, updatable = false)
-  private String userUuid = UUID.randomUUID().toString();
+  private UUID userUuid;
 
   @Column(name = "name", nullable = false)
   private String name;
