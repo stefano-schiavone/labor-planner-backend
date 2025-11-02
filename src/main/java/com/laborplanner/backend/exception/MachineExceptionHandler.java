@@ -22,4 +22,6 @@ public class MachineExceptionHandler {
     ApiError error = ApiError.of("Duplicate machine name", ex.getMessage(), HttpStatus.CONFLICT);
     return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
   }
+
+  // TODO: Add Machine Status Exceptions Handling
 }

@@ -14,8 +14,9 @@ public class MachineStatusEntity {
 
   // Fields
   @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "machine_status_uuid", nullable = false, updatable = false)
-  private String machineStatusUuid = UUID.randomUUID().toString();
+  private UUID machineStatusUuid;
 
   @Column(name = "name", nullable = false, unique = true)
   private String name;

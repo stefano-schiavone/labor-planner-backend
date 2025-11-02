@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import lombok.*;
 
 @Getter
@@ -14,8 +13,7 @@ import lombok.*;
 public class Job {
 
   // Fields
-  @Setter(AccessLevel.NONE)
-  private String jobUuid = UUID.randomUUID().toString();
+  private String jobUuid;
 
   private JobTemplate template;
 

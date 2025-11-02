@@ -1,6 +1,5 @@
 package com.laborplanner.backend.model;
 
-import java.util.UUID;
 import lombok.*;
 
 @Getter
@@ -8,8 +7,7 @@ import lombok.*;
 public class MachineStatus {
 
   // Fields
-  @Setter(AccessLevel.NONE)
-  private String machineStatusUuid = UUID.randomUUID().toString();
+  private String machineStatusUuid;
 
   private String name;
 

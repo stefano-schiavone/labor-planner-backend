@@ -31,8 +31,7 @@ public class JobTemplateRepository
   public Optional<JobTemplate> findByName(String name) {
     TypedQuery<JobTemplateEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            JobTemplateEntity.class);
+            "SELECT jt FROM JobTemplateEntity jt WHERE jt.name = :name", JobTemplateEntity.class);
     query.setParameter("name", name);
     return query.getResultStream().findFirst().map(mapper::toModel);
   }
@@ -41,8 +40,7 @@ public class JobTemplateRepository
   public boolean existsByName(String name) {
     TypedQuery<Long> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            Long.class);
+            "SELECT COUNT(jt) FROM JobTemplateEntity jt WHERE jt.name = :name", Long.class);
     query.setParameter("name", name);
     Long count = query.getSingleResult();
     return count != null && count > 0;
@@ -52,9 +50,10 @@ public class JobTemplateRepository
   public List<JobTemplate> findByRequiredMachineType(MachineType machineType) {
     TypedQuery<JobTemplateEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
+            "SELECT jt FROM JobTemplateEntity jt WHERE jt.requiredMachineType.machineTypeUuid ="
+                + " :machineTypeUuid",
             JobTemplateEntity.class);
-    query.setParameter("machineType", machineType);
+    query.setParameter("machineTypeUuid", machineType.getMachineTypeUuid());
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 
@@ -62,9 +61,9 @@ public class JobTemplateRepository
   public List<JobTemplate> findByCreatedByUser(User user) {
     TypedQuery<JobTemplateEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
+            "SELECT jt FROM JobTemplateEntity jt WHERE jt.createdByUser.userUuid = :userUuid",
             JobTemplateEntity.class);
-    query.setParameter("user", user);
+    query.setParameter("userUuid", user.getUserUuid());
     return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 
@@ -72,8 +71,7 @@ public class JobTemplateRepository
   public List<JobTemplate> findAllByOrderByNameAsc() {
     TypedQuery<JobTemplateEntity> query =
         em.createQuery(
-            "", // <-- SQL/HQL query goes here
-            JobTemplateEntity.class);
+            "SELECT jt FROM JobTemplateEntity jt ORDER BY jt.name ASC", JobTemplateEntity.class);
     List<JobTemplateEntity> entities = query.getResultList();
     return entities.stream().map(mapper::toModel).collect(Collectors.toList());
   }

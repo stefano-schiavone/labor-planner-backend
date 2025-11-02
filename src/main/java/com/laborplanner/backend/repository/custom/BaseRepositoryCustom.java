@@ -8,8 +8,11 @@ import java.util.Optional;
 // they will be mapped. The mapper to map them and the UUID type string
 public interface BaseRepositoryCustom<E, UUID, M, MAPPER extends BaseMapper<M, E>> {
 
-  // Create or update a model
-  M save(M model);
+  // Create model
+  M create(M model);
+
+  // Update model
+  M update(M model);
 
   // Find a model by UUID
   Optional<M> findByUuid(UUID uuid);

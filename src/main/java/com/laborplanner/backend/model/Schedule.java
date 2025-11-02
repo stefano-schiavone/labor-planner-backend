@@ -1,7 +1,6 @@
 package com.laborplanner.backend.model;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.*;
 
 @Getter
@@ -10,8 +9,7 @@ import lombok.*;
 public class Schedule {
 
   // Fields
-  @Setter(AccessLevel.NONE)
-  private String scheduleUuid = UUID.randomUUID().toString();
+  private String scheduleUuid;
 
   private LocalDateTime weekStartDate;
 

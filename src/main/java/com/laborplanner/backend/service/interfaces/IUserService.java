@@ -8,7 +8,7 @@ public interface IUserService {
 
   User getUserByUuid(String userUuid);
 
-  User updateUser(User user);
+  User updateUser(String uuid, User updatedUser);
 
   void deleteUser(String userUuid);
 
