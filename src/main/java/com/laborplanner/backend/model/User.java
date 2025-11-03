@@ -26,8 +26,4 @@ public class User {
     this.email = email;
     this.type = type;
   }
-
-  public void changeName(String name) {
-    this.setName(name);
-  }
 }
