@@ -36,7 +36,11 @@ public class AccountTypeRepository
 
   @Override
   public boolean existsByName(String name) {
-    return false;
+    TypedQuery<Long> query =
+        em.createQuery("SELECT COUNT(a) FROM AccountTypeEntity a WHERE a.name = :name", Long.class);
+    query.setParameter("name", name);
+    Long count = query.getSingleResult();
+    return count != null && count > 0;
   }
 
   @Override
@@ -44,7 +48,6 @@ public class AccountTypeRepository
     TypedQuery<AccountTypeEntity> query =
         em.createQuery(
             "SELECT a FROM AccountTypeEntity a ORDER BY a.name ASC", AccountTypeEntity.class);
-    List<AccountTypeEntity> entities = query.getResultList();
-    return entities.stream().map(mapper::toModel).collect(Collectors.toList());
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 }
