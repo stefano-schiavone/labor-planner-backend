@@ -4,10 +4,8 @@ import com.laborplanner.backend.model.Job;
 import com.laborplanner.backend.service.JobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -45,21 +43,5 @@ public class JobController {
   @DeleteMapping("/{uuid}")
   public void deleteJob(@PathVariable String uuid) {
     jobService.deleteJob(uuid);
-  }
-
-  @Operation(summary = "Find jobs by deadline before given date")
-  @GetMapping("/deadline-before")
-  public List<Job> findJobsBeforeDeadline(
-      @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-          LocalDateTime date) {
-    return jobService.findByDeadlineBefore(date);
-  }
-
-  @Operation(summary = "Find jobs by deadline after given date")
-  @GetMapping("/deadline-after")
-  public List<Job> findJobsAfterDeadline(
-      @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-          LocalDateTime date) {
-    return jobService.findByDeadlineAfter(date);
   }
 }

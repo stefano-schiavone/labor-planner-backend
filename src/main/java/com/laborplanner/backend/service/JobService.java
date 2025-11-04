@@ -3,11 +3,9 @@ package com.laborplanner.backend.service;
 import com.laborplanner.backend.exception.job.DuplicateJobNameException;
 import com.laborplanner.backend.exception.job.JobNotFoundException;
 import com.laborplanner.backend.model.Job;
-import com.laborplanner.backend.model.JobTemplate;
 import com.laborplanner.backend.model.MachineType;
 import com.laborplanner.backend.repository.JobRepository;
 import com.laborplanner.backend.service.interfaces.IJobService;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -92,22 +90,8 @@ public class JobService implements IJobService {
   }
 
   @Override
-  public List<Job> findByTemplate(JobTemplate template) {
-    return jobRepository.findByTemplate(template);
-  }
-
-  @Override
   public List<Job> findByRequiredMachineType(MachineType type) {
+    // NOTE: Needs to be joined with MachineType in DB
     return jobRepository.findByRequiredMachineType(type);
-  }
-
-  @Override
-  public List<Job> findByDeadlineBefore(LocalDateTime deadline) {
-    return jobRepository.findByDeadlineBefore(deadline);
-  }
-
-  @Override
-  public List<Job> findByDeadlineAfter(LocalDateTime deadline) {
-    return jobRepository.findByDeadlineAfter(deadline);
   }
 }
