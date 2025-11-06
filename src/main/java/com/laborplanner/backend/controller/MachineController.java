@@ -15,6 +15,8 @@ public class MachineController {
 
   @Autowired private MachineService machineService;
 
+  // TODO: Check when creating machines if at least one machineType exists
+  // TODO: Add check so that it cna't delete machine type if machines are assigned to that type
   @Operation(summary = "Get all machines")
   @GetMapping
   public List<Machine> getAllMachines() {
