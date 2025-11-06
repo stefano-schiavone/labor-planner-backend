@@ -48,7 +48,6 @@ public class MachineTypeRepository
     TypedQuery<MachineTypeEntity> query =
         em.createQuery(
             "SELECT t FROM MachineTypeEntity t ORDER BY t.name ASC", MachineTypeEntity.class);
-    List<MachineTypeEntity> entities = query.getResultList();
-    return entities.stream().map(mapper::toModel).collect(Collectors.toList());
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 }

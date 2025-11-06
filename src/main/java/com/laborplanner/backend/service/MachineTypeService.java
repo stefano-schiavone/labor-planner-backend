@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Slf4j
+// @Transactional
 @Service
 public class MachineTypeService implements IMachineTypeService {
 
@@ -39,12 +40,10 @@ public class MachineTypeService implements IMachineTypeService {
   @Override
   public MachineType createType(MachineType type) {
     log.info("Creating machine type: name='{}'", type.getName());
-
     if (machineTypeRepository.existsByName(type.getName())) {
       log.warn("Duplicate machine type name attempted: {}", type.getName());
       throw new DuplicateMachineTypeNameException(type.getName());
     }
-
     MachineType created = machineTypeRepository.create(type);
     log.info("Machine type created successfully: uuid='{}'", created.getMachineTypeUuid());
     return created;
@@ -60,7 +59,6 @@ public class MachineTypeService implements IMachineTypeService {
                   log.warn("Machine type not found for update: uuid='{}'", uuid);
                   return new MachineTypeNotFoundException(uuid);
                 });
-
     existing.setName(updatedType.getName());
     MachineType saved = machineTypeRepository.update(existing);
     log.info("Machine type updated successfully: uuid='{}'", saved.getMachineTypeUuid());
