@@ -7,12 +7,14 @@ import com.laborplanner.backend.model.MachineType;
 import com.laborplanner.backend.model.User;
 import com.laborplanner.backend.repository.JobTemplateRepository;
 import com.laborplanner.backend.service.interfaces.IJobTemplateService;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Slf4j
+@Transactional
 @Service
 public class JobTemplateService implements IJobTemplateService {
 

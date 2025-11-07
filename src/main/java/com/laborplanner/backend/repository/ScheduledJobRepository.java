@@ -17,7 +17,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class ScheduledJobRepository
-    extends BaseRepository<ScheduledJobEntity, String, ScheduledJob, ScheduledJobMapper>
+    extends BaseRepository<ScheduledJobEntity, ScheduledJob, ScheduledJobMapper>
     implements ScheduledJobRepositoryCustom {
 
   @PersistenceContext private EntityManager em;

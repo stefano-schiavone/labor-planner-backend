@@ -4,16 +4,18 @@ import com.laborplanner.backend.exception.machine.DuplicateMachineTypeNameExcept
 import com.laborplanner.backend.exception.machine.MachineTypeNotFoundException;
 import com.laborplanner.backend.model.MachineType;
 import com.laborplanner.backend.repository.MachineTypeRepository;
-import com.laborplanner.backend.service.interfaces.IMachineTypeService;
+import com.laborplanner.backend.service.interfaces.IMachineTypeReadService;
+import com.laborplanner.backend.service.interfaces.IMachineTypeWriteService;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Slf4j
-// @Transactional
+@Transactional
 @Service
-public class MachineTypeService implements IMachineTypeService {
+public class MachineTypeService implements IMachineTypeReadService, IMachineTypeWriteService {
 
   private final MachineTypeRepository machineTypeRepository;
 
@@ -21,6 +23,9 @@ public class MachineTypeService implements IMachineTypeService {
     this.machineTypeRepository = machineTypeRepository;
   }
 
+  // ---------------------------
+  // IMachineTypeReadService Implementation
+  // ---------------------------
   @Override
   public List<MachineType> getAllTypes() {
     return machineTypeRepository.findAllByOrderByNameAsc();

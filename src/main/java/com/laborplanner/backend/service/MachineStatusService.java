@@ -4,7 +4,8 @@ import com.laborplanner.backend.exception.machine.DuplicateMachineStatusNameExce
 import com.laborplanner.backend.exception.machine.MachineStatusNotFoundException;
 import com.laborplanner.backend.model.MachineStatus;
 import com.laborplanner.backend.repository.MachineStatusRepository;
-import com.laborplanner.backend.service.interfaces.IMachineStatusService;
+import com.laborplanner.backend.service.interfaces.IMachineStatusReadService;
+import com.laborplanner.backend.service.interfaces.IMachineStatusWriteService;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Transactional
 @Service
-public class MachineStatusService implements IMachineStatusService {
+public class MachineStatusService implements IMachineStatusWriteService, IMachineStatusReadService {
 
   private final MachineStatusRepository machineStatusRepository;
 
