@@ -5,12 +5,14 @@ import com.laborplanner.backend.exception.user.DuplicateAccountTypeNameException
 import com.laborplanner.backend.model.AccountType;
 import com.laborplanner.backend.repository.AccountTypeRepository;
 import com.laborplanner.backend.service.interfaces.IAccountTypeService;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Slf4j
+@Transactional
 @Service
 public class AccountTypeService implements IAccountTypeService {
 

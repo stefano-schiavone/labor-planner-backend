@@ -1,5 +1,6 @@
 package com.laborplanner.backend.service.interfaces;
 
+import com.laborplanner.backend.dto.machine.MachineDto;
 import com.laborplanner.backend.model.Machine;
 import com.laborplanner.backend.model.MachineStatus;
 import com.laborplanner.backend.model.MachineType;
@@ -8,21 +9,21 @@ import java.util.Optional;
 
 public interface IMachineService {
 
-  List<Machine> getAllMachines();
+  List<MachineDto> getAllMachines();
 
-  Machine getMachineByUuid(String uuid);
+  MachineDto getMachineByUuid(String uuid);
 
-  Machine createMachine(Machine machine);
+  MachineDto createMachine(MachineDto machine);
 
-  Machine updateMachine(String uuid, Machine updatedMachine);
+  MachineDto updateMachine(String uuid, MachineDto updatedMachine);
 
   void deleteMachine(String uuid);
 
   Optional<Machine> findByName(String name);
 
-  List<Machine> findByType(MachineType type);
+  List<MachineDto> findByType(MachineType type);
 
-  List<Machine> findByStatus(MachineStatus status);
+  List<MachineDto> findByStatus(MachineStatus status);
 
-  List<Machine> findByTypeAndStatus(MachineType type, MachineStatus status);
+  List<MachineDto> findByTypeAndStatus(MachineType type, MachineStatus status);
 }

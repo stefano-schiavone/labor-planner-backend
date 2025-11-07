@@ -15,8 +15,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class ScheduleRepository
-    extends BaseRepository<ScheduleEntity, String, Schedule, ScheduleMapper>
+public class ScheduleRepository extends BaseRepository<ScheduleEntity, Schedule, ScheduleMapper>
     implements ScheduleRepositoryCustom {
 
   @PersistenceContext private EntityManager em;

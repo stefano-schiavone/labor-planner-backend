@@ -14,15 +14,16 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class MachineStatusRepository
-    extends BaseRepository<MachineStatusEntity, String, MachineStatus, MachineStatusMapper>
+    extends BaseRepository<MachineStatusEntity, MachineStatus, MachineStatusMapper>
     implements MachineStatusRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
-  private final MachineStatusMapper mapper = MachineStatusMapper.INSTANCE;
+  private final MachineStatusMapper mapper;
 
-  public MachineStatusRepository() {
-    super(MachineStatusEntity.class, MachineStatusMapper.INSTANCE);
+  public MachineStatusRepository(MachineStatusMapper mapper) {
+    super(MachineStatusEntity.class, mapper);
+    this.mapper = mapper;
   }
 
   @Override
