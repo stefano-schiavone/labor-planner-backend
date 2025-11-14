@@ -21,10 +21,8 @@ public class JobRepository extends BaseRepository<JobEntity, Job, JobMapper>
 
   @PersistenceContext private EntityManager em;
 
-  private final JobMapper mapper = JobMapper.INSTANCE;
-
-  public JobRepository() {
-    super(JobEntity.class, JobMapper.INSTANCE);
+  public JobRepository(JobMapper mapper) {
+    super(JobEntity.class, mapper);
   }
 
   @Override
