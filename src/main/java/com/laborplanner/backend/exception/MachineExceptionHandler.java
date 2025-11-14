@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class MachineExceptionHandler {
 
+  // TODO: Add the Status and Type Exception handling
   @ExceptionHandler(MachineNotFoundException.class)
   public ResponseEntity<ApiError> handleNotFound(MachineNotFoundException ex) {
     ApiError error = ApiError.of("Machine not found", ex.getMessage(), HttpStatus.NOT_FOUND);
@@ -22,6 +23,4 @@ public class MachineExceptionHandler {
     ApiError error = ApiError.of("Duplicate machine name", ex.getMessage(), HttpStatus.CONFLICT);
     return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
   }
-
-  // TODO: Add Machine Status Exceptions Handling
 }

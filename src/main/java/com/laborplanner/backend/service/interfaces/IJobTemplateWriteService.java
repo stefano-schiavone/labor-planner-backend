@@ -6,7 +6,7 @@ import com.laborplanner.backend.model.User;
 import java.util.List;
 import java.util.Optional;
 
-public interface IJobTemplateService {
+public interface IJobTemplateWriteService {
   List<JobTemplate> getAllJobTemplates();
 
   JobTemplate getJobTemplateByUuid(String uuid);

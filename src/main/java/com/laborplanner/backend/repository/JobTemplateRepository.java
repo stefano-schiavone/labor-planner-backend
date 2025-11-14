@@ -16,15 +16,13 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class JobTemplateRepository
-    extends BaseRepository<JobTemplateEntity, String, JobTemplate, JobTemplateMapper>
+    extends BaseRepository<JobTemplateEntity, JobTemplate, JobTemplateMapper>
     implements JobTemplateRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
-  private final JobTemplateMapper mapper = JobTemplateMapper.INSTANCE;
-
-  public JobTemplateRepository() {
-    super(JobTemplateEntity.class, JobTemplateMapper.INSTANCE);
+  public JobTemplateRepository(JobTemplateMapper mapper) {
+    super(JobTemplateEntity.class, mapper);
   }
 
   @Override

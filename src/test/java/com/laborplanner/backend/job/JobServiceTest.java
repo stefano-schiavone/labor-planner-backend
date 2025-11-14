@@ -1,0 +1,362 @@
+package com.laborplanner.backend.job;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import com.laborplanner.backend.dto.job.JobDto;
+import com.laborplanner.backend.exception.job.DuplicateJobNameException;
+import com.laborplanner.backend.exception.job.JobNotFoundException;
+import com.laborplanner.backend.exception.machine.MachineTypeNotFoundException;
+import com.laborplanner.backend.model.Job;
+import com.laborplanner.backend.model.JobTemplate;
+import com.laborplanner.backend.model.MachineType;
+import com.laborplanner.backend.repository.JobRepository;
+import com.laborplanner.backend.service.JobService;
+import com.laborplanner.backend.service.interfaces.IJobTemplateReadService;
+import com.laborplanner.backend.service.interfaces.IMachineTypeReadService;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+class JobServiceTest {
+
+  @Mock private JobRepository jobRepository;
+
+  @Mock private IMachineTypeReadService machineTypeService;
+
+  @Mock private IJobTemplateReadService jobTemplateService;
+
+  @InjectMocks private JobService jobService;
+
+  @BeforeEach
+  void setup() {
+    MockitoAnnotations.openMocks(this);
+  }
+
+  // ----------------------------
+  // Create job tests
+  // ----------------------------
+
+  @Test
+  void createJob_withDuplicateName_throwsException() {
+    JobDto dto =
+        new JobDto(
+            null, // jobUuid
+            null, // templateUuid
+            "Duplicate Job",
+            "Desc",
+            Duration.ofMinutes(30),
+            LocalDateTime.now().plusDays(1),
+            "machine-uuid");
+
+    when(jobRepository.existsByName("Duplicate Job")).thenReturn(true);
+
+    assertThrows(DuplicateJobNameException.class, () -> jobService.createJob(dto));
+    verify(jobRepository, times(1)).existsByName("Duplicate Job");
+    verifyNoMoreInteractions(jobRepository);
+    verifyNoInteractions(machineTypeService, jobTemplateService);
+  }
+
+  @Test
+  void createJob_withValidData_createsJob_withoutTemplate() {
+    JobDto dto =
+        new JobDto(
+            null,
+            null, // no template
+            "Valid Job",
+            "Desc",
+            Duration.ofMinutes(30),
+            LocalDateTime.now().plusDays(1),
+            "machine-uuid");
+
+    MachineType machineType = new MachineType();
+    machineType.setMachineTypeUuid("machine-uuid");
+
+    when(jobRepository.existsByName("Valid Job")).thenReturn(false);
+    when(machineTypeService.getTypeByUuid("machine-uuid")).thenReturn(machineType);
+    when(jobRepository.create(any(Job.class)))
+        .thenAnswer(
+            i -> {
+              Job j = i.getArgument(0);
+              j.setJobUuid("job-uuid-123");
+              return j;
+            });
+
+    JobDto created = jobService.createJob(dto);
+
+    assertNotNull(created);
+    assertEquals("job-uuid-123", created.getJobUuid());
+    assertEquals("Valid Job", created.getName());
+    assertNull(created.getTemplateUuid());
+    verify(jobTemplateService, never()).getJobTemplateByUuid(any());
+  }
+
+  @Test
+  void createJob_withTemplate_createsJob_and_setsTemplateUuid() {
+    JobDto dto =
+        new JobDto(
+            null,
+            "template-uuid-1", // template provided
+            "Templated Job",
+            "Desc",
+            Duration.ofMinutes(45),
+            LocalDateTime.now().plusDays(2),
+            "machine-uuid");
+
+    MachineType machineType = new MachineType();
+    machineType.setMachineTypeUuid("machine-uuid");
+
+    JobTemplate template = new JobTemplate();
+    template.setJobTemplateUuid("template-uuid-1");
+
+    when(jobRepository.existsByName("Templated Job")).thenReturn(false);
+    when(machineTypeService.getTypeByUuid("machine-uuid")).thenReturn(machineType);
+    when(jobTemplateService.getJobTemplateByUuid("template-uuid-1")).thenReturn(template);
+    when(jobRepository.create(any(Job.class)))
+        .thenAnswer(
+            i -> {
+              Job j = i.getArgument(0);
+              j.setJobUuid("job-with-template-uuid");
+              return j;
+            });
+
+    JobDto created = jobService.createJob(dto);
+
+    assertNotNull(created);
+    assertEquals("job-with-template-uuid", created.getJobUuid());
+    assertEquals("Templated Job", created.getName());
+    assertEquals("template-uuid-1", created.getTemplateUuid());
+    verify(jobTemplateService, times(1)).getJobTemplateByUuid("template-uuid-1");
+  }
+
+  @Test
+  void createJob_withMissingMachineType_throwsMachineTypeNotFound() {
+    JobDto dto =
+        new JobDto(
+            null,
+            null,
+            "Job With Missing Machine",
+            "Desc",
+            Duration.ofMinutes(30),
+            LocalDateTime.now().plusDays(1),
+            "invalid-uuid");
+
+    when(jobRepository.existsByName("Job With Missing Machine")).thenReturn(false);
+    when(machineTypeService.getTypeByUuid("invalid-uuid"))
+        .thenThrow(new MachineTypeNotFoundException("invalid-uuid"));
+
+    assertThrows(MachineTypeNotFoundException.class, () -> jobService.createJob(dto));
+    verify(machineTypeService, times(1)).getTypeByUuid("invalid-uuid");
+    verify(jobRepository, never()).create(any());
+  }
+
+  // ----------------------------
+  // Get and list tests
+  // ----------------------------
+
+  @Test
+  void getAllJobs_returnsMappedDtos() {
+    MachineType m1 = new MachineType();
+    m1.setMachineTypeUuid("m1");
+
+    MachineType m2 = new MachineType();
+    m2.setMachineTypeUuid("m2");
+
+    Job tJob1 =
+        new Job("A", "d1", Duration.ofMinutes(10), LocalDateTime.now().plusDays(1), m1, null);
+    tJob1.setJobUuid("j1");
+    JobTemplate tmpl = new JobTemplate();
+    tmpl.setJobTemplateUuid("tmpl-1");
+    Job tJob2 =
+        new Job("B", "d2", Duration.ofMinutes(20), LocalDateTime.now().plusDays(2), m2, tmpl);
+    tJob2.setJobUuid("j2");
+
+    when(jobRepository.findAllByOrderByDeadlineAsc()).thenReturn(List.of(tJob1, tJob2));
+
+    List<JobDto> all = jobService.getAllJobs();
+
+    assertEquals(2, all.size());
+    JobDto dto1 = all.get(0);
+    JobDto dto2 = all.get(1);
+
+    assertEquals("j1", dto1.getJobUuid());
+    assertEquals("m1", dto1.getRequiredMachineTypeUuid());
+    assertNull(dto1.getTemplateUuid());
+
+    assertEquals("j2", dto2.getJobUuid());
+    assertEquals("m2", dto2.getRequiredMachineTypeUuid());
+    assertEquals("tmpl-1", dto2.getTemplateUuid());
+  }
+
+  @Test
+  void getJobByUuid_whenExists_returnsDto() {
+    MachineType m = new MachineType();
+    m.setMachineTypeUuid("m1");
+    Job job =
+        new Job("Name", "Desc", Duration.ofMinutes(15), LocalDateTime.now().plusDays(3), m, null);
+    job.setJobUuid("job-123");
+
+    when(jobRepository.findByUuid("job-123")).thenReturn(Optional.of(job));
+
+    JobDto dto = jobService.getJobByUuid("job-123");
+
+    assertEquals("job-123", dto.getJobUuid());
+    assertEquals("Name", dto.getName());
+  }
+
+  @Test
+  void getJobByUuid_whenMissing_throwsJobNotFound() {
+    when(jobRepository.findByUuid("missing")).thenReturn(Optional.empty());
+    assertThrows(JobNotFoundException.class, () -> jobService.getJobByUuid("missing"));
+  }
+
+  // ----------------------------
+  // Update tests
+  // ----------------------------
+
+  @Test
+  void updateJob_successful_update_returnsUpdatedDto() {
+    // existing job in repo
+    MachineType existingType = new MachineType();
+    existingType.setMachineTypeUuid("old-m");
+    Job existing =
+        new Job(
+            "Old Name",
+            "oldDesc",
+            Duration.ofMinutes(10),
+            LocalDateTime.now().plusDays(1),
+            existingType,
+            null);
+    existing.setJobUuid("job-1");
+
+    // DTO with new values and different machine type
+    JobDto dto =
+        new JobDto(
+            "job-1", // jobUuid (not used for lookup)
+            null,
+            "New Name",
+            "New Desc",
+            Duration.ofMinutes(30),
+            LocalDateTime.now().plusDays(5),
+            "new-m");
+
+    MachineType newType = new MachineType();
+    newType.setMachineTypeUuid("new-m");
+
+    when(jobRepository.findByUuid("job-1")).thenReturn(Optional.of(existing));
+    // name changed -> check existsByName should return false (no duplicate)
+    when(jobRepository.existsByName("New Name")).thenReturn(false);
+    when(machineTypeService.getTypeByUuid("new-m")).thenReturn(newType);
+    when(jobRepository.update(any(Job.class)))
+        .thenAnswer(
+            i -> {
+              Job j = i.getArgument(0);
+              // simulate persistence returning the same job
+              return j;
+            });
+
+    JobDto updated = jobService.updateJob("job-1", dto);
+
+    assertEquals("job-1", updated.getJobUuid());
+    assertEquals("New Name", updated.getName());
+    assertEquals("new-m", updated.getRequiredMachineTypeUuid());
+  }
+
+  @Test
+  void updateJob_duplicateName_throwsException() {
+    MachineType existingType = new MachineType();
+    existingType.setMachineTypeUuid("m");
+    Job existing =
+        new Job(
+            "Original",
+            "desc",
+            Duration.ofMinutes(10),
+            LocalDateTime.now().plusDays(1),
+            existingType,
+            null);
+    existing.setJobUuid("job-2");
+
+    JobDto dto =
+        new JobDto(
+            "job-2",
+            null,
+            "Another Name",
+            "desc",
+            Duration.ofMinutes(10),
+            LocalDateTime.now().plusDays(1),
+            "m");
+
+    when(jobRepository.findByUuid("job-2")).thenReturn(Optional.of(existing));
+    // name changed and the new name already exists
+    when(jobRepository.existsByName("Another Name")).thenReturn(true);
+
+    assertThrows(DuplicateJobNameException.class, () -> jobService.updateJob("job-2", dto));
+  }
+
+  @Test
+  void updateJob_whenMissing_throwsJobNotFound() {
+    JobDto dto =
+        new JobDto(
+            "job-xxx",
+            null,
+            "Name",
+            "desc",
+            Duration.ofMinutes(10),
+            LocalDateTime.now().plusDays(1),
+            "m");
+
+    when(jobRepository.findByUuid("job-xxx")).thenReturn(Optional.empty());
+    assertThrows(JobNotFoundException.class, () -> jobService.updateJob("job-xxx", dto));
+  }
+
+  // ----------------------------
+  // Delete tests
+  // ----------------------------
+
+  @Test
+  void deleteJob_whenExists_deletesSuccessfully() {
+    when(jobRepository.existsByUuid("del-1")).thenReturn(true);
+    doNothing().when(jobRepository).deleteByUuid("del-1");
+
+    jobService.deleteJob("del-1");
+
+    verify(jobRepository, times(1)).deleteByUuid("del-1");
+  }
+
+  @Test
+  void deleteJob_whenMissing_throwsJobNotFound() {
+    when(jobRepository.existsByUuid("nope")).thenReturn(false);
+    assertThrows(JobNotFoundException.class, () -> jobService.deleteJob("nope"));
+    verify(jobRepository, never()).deleteByUuid(any());
+  }
+
+  // ----------------------------
+  // Find by machine type
+  // ----------------------------
+
+  @Test
+  void findByRequiredMachineType_returnsMappedDtos() {
+    MachineType m = new MachineType();
+    m.setMachineTypeUuid("mt-1");
+
+    Job j1 = new Job("X", "d", Duration.ofMinutes(5), LocalDateTime.now().plusDays(1), m, null);
+    j1.setJobUuid("x1");
+    Job j2 = new Job("Y", "d2", Duration.ofMinutes(15), LocalDateTime.now().plusDays(2), m, null);
+    j2.setJobUuid("y2");
+
+    when(jobRepository.findByRequiredMachineType(m)).thenReturn(List.of(j1, j2));
+
+    List<JobDto> results = jobService.findByRequiredMachineType(m);
+
+    assertEquals(2, results.size());
+    assertEquals("x1", results.get(0).getJobUuid());
+    assertEquals("mt-1", results.get(0).getRequiredMachineTypeUuid());
+  }
+}

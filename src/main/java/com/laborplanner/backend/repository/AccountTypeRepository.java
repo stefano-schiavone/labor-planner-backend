@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class AccountTypeRepository
-    extends BaseRepository<AccountTypeEntity, String, AccountType, AccountTypeMapper>
+    extends BaseRepository<AccountTypeEntity, AccountType, AccountTypeMapper>
     implements AccountTypeRepositoryCustom {
 
   @PersistenceContext private EntityManager em;

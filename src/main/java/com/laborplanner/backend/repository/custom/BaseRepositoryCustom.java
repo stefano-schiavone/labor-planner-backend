@@ -6,7 +6,7 @@ import java.util.Optional;
 
 // This base repository interfave defines all default methods. It wants the Entity and Model because
 // they will be mapped. The mapper to map them and the UUID type string
-public interface BaseRepositoryCustom<E, UUID, M, MAPPER extends BaseMapper<M, E>> {
+public interface BaseRepositoryCustom<E, M, MAPPER extends BaseMapper<M, E>> {
 
   // Create model
   M create(M model);
@@ -15,14 +15,14 @@ public interface BaseRepositoryCustom<E, UUID, M, MAPPER extends BaseMapper<M, E
   M update(M model);
 
   // Find a model by UUID
-  Optional<M> findByUuid(UUID uuid);
+  Optional<M> findByUuid(String uuid);
 
   // Get all models
   List<M> findAll();
 
   // Delete a model (by its entity UUID)
-  void deleteByUuid(UUID uuid);
+  void deleteByUuid(String uuid);
 
   // Check if a record exists
-  boolean existsByUuid(UUID uuid);
+  boolean existsByUuid(String uuid);
 }

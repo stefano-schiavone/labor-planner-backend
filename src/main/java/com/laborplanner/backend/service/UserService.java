@@ -4,9 +4,11 @@ import com.laborplanner.backend.exception.user.UserNotFoundException;
 import com.laborplanner.backend.model.User;
 import com.laborplanner.backend.repository.UserRepository;
 import com.laborplanner.backend.service.interfaces.*;
+import jakarta.transaction.Transactional;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
+@Transactional
 @Service
 public class UserService implements IUserService, IUserAuthService, IUserTokenService {
 

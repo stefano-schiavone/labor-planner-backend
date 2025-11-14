@@ -11,7 +11,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class UserRepository extends BaseRepository<UserEntity, String, User, UserMapper>
+public class UserRepository extends BaseRepository<UserEntity, User, UserMapper>
     implements UserRepositoryCustom {
 
   @PersistenceContext private EntityManager em;

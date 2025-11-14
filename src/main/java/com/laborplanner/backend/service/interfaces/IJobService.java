@@ -1,22 +1,19 @@
 package com.laborplanner.backend.service.interfaces;
 
-import com.laborplanner.backend.model.Job;
+import com.laborplanner.backend.dto.job.JobDto;
 import com.laborplanner.backend.model.MachineType;
 import java.util.List;
-import java.util.Optional;
 
 public interface IJobService {
-  List<Job> getAllJobs();
+  List<JobDto> getAllJobs();
 
-  Job getJobByUuid(String uuid);
+  JobDto getJobByUuid(String uuid);
 
-  Job createJob(Job job);
+  JobDto createJob(JobDto job);
 
-  Job updateJob(String uuid, Job updatedJob);
+  JobDto updateJob(String uuid, JobDto dto);
 
   void deleteJob(String uuid);
 
-  Optional<Job> findByName(String name);
-
-  List<Job> findByRequiredMachineType(MachineType type);
+  List<JobDto> findByRequiredMachineType(MachineType type);
 }

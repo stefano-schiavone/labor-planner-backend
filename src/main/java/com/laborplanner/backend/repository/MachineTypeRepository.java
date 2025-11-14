@@ -14,15 +14,16 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class MachineTypeRepository
-    extends BaseRepository<MachineTypeEntity, String, MachineType, MachineTypeMapper>
+    extends BaseRepository<MachineTypeEntity, MachineType, MachineTypeMapper>
     implements MachineTypeRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
-  private final MachineTypeMapper mapper = MachineTypeMapper.INSTANCE;
+  private final MachineTypeMapper mapper;
 
-  public MachineTypeRepository() {
-    super(MachineTypeEntity.class, MachineTypeMapper.INSTANCE);
+  public MachineTypeRepository(MachineTypeMapper mapper) {
+    super(MachineTypeEntity.class, mapper);
+    this.mapper = mapper;
   }
 
   @Override
@@ -48,7 +49,6 @@ public class MachineTypeRepository
     TypedQuery<MachineTypeEntity> query =
         em.createQuery(
             "SELECT t FROM MachineTypeEntity t ORDER BY t.name ASC", MachineTypeEntity.class);
-    List<MachineTypeEntity> entities = query.getResultList();
-    return entities.stream().map(mapper::toModel).collect(Collectors.toList());
+    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
   }
 }

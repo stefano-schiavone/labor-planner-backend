@@ -17,15 +17,13 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class ScheduledJobRepository
-    extends BaseRepository<ScheduledJobEntity, String, ScheduledJob, ScheduledJobMapper>
+    extends BaseRepository<ScheduledJobEntity, ScheduledJob, ScheduledJobMapper>
     implements ScheduledJobRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
-  private final ScheduledJobMapper mapper = ScheduledJobMapper.INSTANCE;
-
-  public ScheduledJobRepository() {
-    super(ScheduledJobEntity.class, ScheduledJobMapper.INSTANCE);
+  public ScheduledJobRepository(ScheduledJobMapper mapper) {
+    super(ScheduledJobEntity.class, mapper);
   }
 
   @Override
