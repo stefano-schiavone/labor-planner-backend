@@ -1,7 +1,6 @@
 package com.laborplanner.backend.repository.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.*;
 
@@ -20,10 +19,6 @@ public class ScheduledJobEntity {
   private UUID scheduledJobUuid;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "schedule_uuid", nullable = false)
-  private ScheduleEntity schedule;
-
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "job_uuid", nullable = false)
   private JobEntity job;
 
@@ -31,9 +26,11 @@ public class ScheduledJobEntity {
   @JoinColumn(name = "machine_uuid", nullable = false)
   private MachineEntity machine;
 
-  @Column(name = "start_time", nullable = false)
-  private LocalDateTime startTime;
+  @Column(name = "starting_time_grain", nullable = false)
+  private int startingTimeGrainIndex;
 
-  @Column(name = "end_time", nullable = false)
-  private LocalDateTime endTime;
+  // NOTE: Only here for Hibernate error
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "schedule_uuid", nullable = false)
+  private ScheduleEntity schedule;
 }

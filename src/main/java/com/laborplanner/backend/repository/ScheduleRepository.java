@@ -20,10 +20,8 @@ public class ScheduleRepository extends BaseRepository<ScheduleEntity, Schedule,
 
   @PersistenceContext private EntityManager em;
 
-  private final ScheduleMapper mapper = ScheduleMapper.INSTANCE;
-
-  public ScheduleRepository() {
-    super(ScheduleEntity.class, ScheduleMapper.INSTANCE);
+  public ScheduleRepository(ScheduleMapper mapper) {
+    super(ScheduleEntity.class, mapper);
   }
 
   @Override

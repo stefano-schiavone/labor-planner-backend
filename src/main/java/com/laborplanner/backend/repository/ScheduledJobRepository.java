@@ -22,10 +22,8 @@ public class ScheduledJobRepository
 
   @PersistenceContext private EntityManager em;
 
-  private final ScheduledJobMapper mapper = ScheduledJobMapper.INSTANCE;
-
-  public ScheduledJobRepository() {
-    super(ScheduledJobEntity.class, ScheduledJobMapper.INSTANCE);
+  public ScheduledJobRepository(ScheduledJobMapper mapper) {
+    super(ScheduledJobEntity.class, mapper);
   }
 
   @Override
