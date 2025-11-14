@@ -15,15 +15,16 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class MachineRepository extends BaseRepository<MachineEntity, String, Machine, MachineMapper>
+public class MachineRepository extends BaseRepository<MachineEntity, Machine, MachineMapper>
     implements MachineRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
-  private final MachineMapper mapper = MachineMapper.INSTANCE;
+  private final MachineMapper mapper;
 
-  public MachineRepository() {
-    super(MachineEntity.class, MachineMapper.INSTANCE);
+  public MachineRepository(MachineMapper mapper) {
+    super(MachineEntity.class, mapper);
+    this.mapper = mapper;
   }
 
   @Override

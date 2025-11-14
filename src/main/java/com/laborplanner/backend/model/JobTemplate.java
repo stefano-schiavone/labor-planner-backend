@@ -5,6 +5,7 @@ import lombok.*;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class JobTemplate {
 
   // Fields

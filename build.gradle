@@ -18,6 +18,8 @@ repositories {
 	mavenCentral()
 }
 
+def optaplannerVersion = "9.44.0.Final"
+
 dependencies {
    // Core Spring Boot
    implementation 'org.springframework.boot:spring-boot-starter'
@@ -47,6 +49,11 @@ dependencies {
    implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
    implementation 'jakarta.el:jakarta.el-api:6.0.1'
 
+   // Optaplanner
+   implementation platform("org.optaplanner:optaplanner-bom:${optaplannerVersion}")
+   implementation "org.optaplanner:optaplanner-spring-boot-starter"
+   testImplementation("org.optaplanner:optaplanner-test")
+
    // H2 Database
    testImplementation 'com.h2database:h2'
 
@@ -55,6 +62,8 @@ dependencies {
    testAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+   implementation 'org.springframework.boot:spring-boot-starter-validation'
+   testImplementation 'org.springframework.boot:spring-boot-starter-validation'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

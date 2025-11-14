@@ -16,15 +16,13 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class JobRepository extends BaseRepository<JobEntity, String, Job, JobMapper>
+public class JobRepository extends BaseRepository<JobEntity, Job, JobMapper>
     implements JobRepositoryCustom {
 
   @PersistenceContext private EntityManager em;
 
-  private final JobMapper mapper = JobMapper.INSTANCE;
-
-  public JobRepository() {
-    super(JobEntity.class, JobMapper.INSTANCE);
+  public JobRepository(JobMapper mapper) {
+    super(JobEntity.class, mapper);
   }
 
   @Override
