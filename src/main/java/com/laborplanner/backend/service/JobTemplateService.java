@@ -6,7 +6,8 @@ import com.laborplanner.backend.model.JobTemplate;
 import com.laborplanner.backend.model.MachineType;
 import com.laborplanner.backend.model.User;
 import com.laborplanner.backend.repository.JobTemplateRepository;
-import com.laborplanner.backend.service.interfaces.IJobTemplateService;
+import com.laborplanner.backend.service.interfaces.IJobTemplateReadService;
+import com.laborplanner.backend.service.interfaces.IJobTemplateWriteService;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -16,7 +17,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Transactional
 @Service
-public class JobTemplateService implements IJobTemplateService {
+public class JobTemplateService implements IJobTemplateReadService, IJobTemplateWriteService {
 
   private final JobTemplateRepository jobTemplateRepository;
 
@@ -25,7 +26,7 @@ public class JobTemplateService implements IJobTemplateService {
   }
 
   // ---------------------------
-  // IJobTemplateService Implementation
+  // IJobTemplateReadService Implementation
   // ---------------------------
 
   @Override
@@ -44,6 +45,24 @@ public class JobTemplateService implements IJobTemplateService {
             });
   }
 
+  @Override
+  public Optional<JobTemplate> findByName(String name) {
+    return jobTemplateRepository.findByName(name);
+  }
+
+  @Override
+  public List<JobTemplate> findByRequiredMachineType(MachineType machineType) {
+    return jobTemplateRepository.findByRequiredMachineType(machineType);
+  }
+
+  @Override
+  public List<JobTemplate> findByCreatedByUser(User user) {
+    return jobTemplateRepository.findByCreatedByUser(user);
+  }
+
+  // ---------------------------
+  // IJobTemplateReadService Implementation
+  // ---------------------------
   @Override
   public JobTemplate createJobTemplate(JobTemplate jobTemplate) {
     log.info("Creating job template: name='{}'", jobTemplate.getName());
@@ -88,20 +107,5 @@ public class JobTemplateService implements IJobTemplateService {
     }
     jobTemplateRepository.deleteByUuid(uuid);
     log.info("JobTemplate deleted successfully: uuid='{}'", uuid);
-  }
-
-  @Override
-  public Optional<JobTemplate> findByName(String name) {
-    return jobTemplateRepository.findByName(name);
-  }
-
-  @Override
-  public List<JobTemplate> findByRequiredMachineType(MachineType machineType) {
-    return jobTemplateRepository.findByRequiredMachineType(machineType);
-  }
-
-  @Override
-  public List<JobTemplate> findByCreatedByUser(User user) {
-    return jobTemplateRepository.findByCreatedByUser(user);
   }
 }
