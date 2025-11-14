@@ -2,6 +2,7 @@ package com.laborplanner.backend.repository.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.*;
 
@@ -10,10 +11,9 @@ import lombok.*;
 @Table(name = "schedule")
 @Getter
 @Setter
-@NoArgsConstructor // Required by JPA
+@NoArgsConstructor
 public class ScheduleEntity {
 
-  // Fields
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "schedule_uuid", nullable = false, updatable = false)
@@ -28,4 +28,8 @@ public class ScheduleEntity {
 
   @Column(name = "last_modified_date", nullable = false)
   private LocalDateTime lastModifiedDate;
+
+  // One-to-many relationship with ScheduledJobEntity
+  @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<ScheduledJobEntity> scheduledJobList;
 }
