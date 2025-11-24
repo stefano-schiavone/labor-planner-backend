@@ -18,79 +18,79 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Jobs", description = "Manage job definitions and scheduling")
 public class JobController {
 
-  private final JobService jobService;
+   private final JobService jobService;
 
-  public JobController(JobService jobService) {
-    this.jobService = jobService;
-  }
+   public JobController(JobService jobService) {
+      this.jobService = jobService;
+   }
 
-  // -------------------------------------------------------
-  // CRUD Endpoints
-  // -------------------------------------------------------
+   // -------------------------------------------------------
+   // CRUD Endpoints
+   // -------------------------------------------------------
 
-  @Operation(summary = "Get all jobs")
-  @GetMapping
-  public List<JobResponse> getAllJobs() {
-    return jobService.getAllJobs().stream().map(this::toResponse).collect(Collectors.toList());
-  }
+   @Operation(summary = "Get all jobs")
+   @GetMapping
+   public List<JobResponse> getAllJobs() {
+      return jobService.getAllJobs().stream().map(this::toResponse).collect(Collectors.toList());
+   }
 
-  @Operation(summary = "Get a job by UUID")
-  @GetMapping("/{uuid}")
-  public JobResponse getJob(@PathVariable String uuid) {
-    return toResponse(jobService.getJobByUuid(uuid));
-  }
+   @Operation(summary = "Get a job by UUID")
+   @GetMapping("/{uuid}")
+   public JobResponse getJob(@PathVariable String uuid) {
+      return toResponse(jobService.getJobByUuid(uuid));
+   }
 
-  @Operation(summary = "Create a new job")
-  @PostMapping
-  public ResponseEntity<JobResponse> createJob(@RequestBody @Valid JobRequest request) {
-    JobDto dto = toDto(request);
+   @Operation(summary = "Create a new job")
+   @PostMapping
+   public ResponseEntity<JobResponse> createJob(@RequestBody @Valid JobRequest request) {
+      JobDto dto = toDto(request);
 
-    // service returns JobDto
-    JobDto created = jobService.createJob(dto);
+      // service returns JobDto
+      JobDto created = jobService.createJob(dto);
 
-    JobResponse response = toResponse(created);
-    URI location = URI.create("/api/jobs/" + created.getJobUuid());
-    return ResponseEntity.created(location).body(response);
-  }
+      JobResponse response = toResponse(created);
+      URI location = URI.create("/api/jobs/" + created.getJobUuid());
+      return ResponseEntity.created(location).body(response);
+   }
 
-  @Operation(summary = "Update a job")
-  @PutMapping("/{uuid}")
-  public JobResponse updateJob(@PathVariable String uuid, @RequestBody @Valid JobRequest request) {
+   @Operation(summary = "Update a job")
+   @PutMapping("/{uuid}")
+   public JobResponse updateJob(@PathVariable String uuid, @RequestBody @Valid JobRequest request) {
 
-    JobDto dto = toDto(request);
-    JobDto updated = jobService.updateJob(uuid, dto);
+      JobDto dto = toDto(request);
+      JobDto updated = jobService.updateJob(uuid, dto);
 
-    return toResponse(updated);
-  }
+      return toResponse(updated);
+   }
 
-  @Operation(summary = "Delete a job")
-  @DeleteMapping("/{uuid}")
-  public void deleteJob(@PathVariable String uuid) {
-    jobService.deleteJob(uuid);
-  }
+   @Operation(summary = "Delete a job")
+   @DeleteMapping("/{uuid}")
+   public void deleteJob(@PathVariable String uuid) {
+      jobService.deleteJob(uuid);
+   }
 
-  // -------------------------------------------------------
-  // Mapping Helpers
-  // -------------------------------------------------------
+   // -------------------------------------------------------
+   // Mapping Helpers
+   // -------------------------------------------------------
 
-  private JobResponse toResponse(JobDto dto) {
-    return new JobResponse(
-        dto.getJobUuid(),
-        dto.getTemplateUuid(),
-        dto.getName(),
-        dto.getDescription(),
-        dto.getDuration(),
-        dto.getDeadline(),
-        dto.getRequiredMachineTypeUuid());
-  }
+   private JobResponse toResponse(JobDto dto) {
+      return new JobResponse(
+            dto.getJobUuid(),
+            dto.getTemplateUuid(),
+            dto.getName(),
+            dto.getDescription(),
+            dto.getDuration(),
+            dto.getDeadline(),
+            dto.getRequiredMachineTypeUuid());
+   }
 
-  private JobDto toDto(JobRequest req) {
-    return new JobDto(
-        req.getTemplateUuid(),
-        req.getName(),
-        req.getDescription(),
-        req.getDuration(),
-        req.getDeadline(),
-        req.getRequiredMachineTypeUuid());
-  }
+   private JobDto toDto(JobRequest req) {
+      return new JobDto(
+            req.getTemplateUuid(),
+            req.getName(),
+            req.getDescription(),
+            req.getDuration(),
+            req.getDeadline(),
+            req.getRequiredMachineTypeUuid());
+   }
 }
