@@ -108,6 +108,8 @@ test:
 sonar-connectivity-check:
   image: curlimages/curl:8.5.0
   stage: sonar
+  # override global before_script so the chmod global step is not executed here
+  before_script: []
   script:
     - echo "SONAR_HOST_URL = $SONAR_HOST_URL"
     - echo "Testing Sonar API reachability from runner..."
