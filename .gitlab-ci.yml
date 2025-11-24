@@ -9,6 +9,7 @@
 stages:
    - build # Compile the code and build JAR
    - test # Run unit/integration tests (H2 DB)
+   - sonar # Run SonarQube tests
    - staging # Run staging environment (PostgreSQL DB)
    - package # Package artifacts for Docker image
    - image # Build & push Docker image
@@ -18,6 +19,7 @@ stages:
 # Global Variables
 # =========================================================
 variables:
+   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar" 
    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
    # I keep Gradle cache inside the project so it can be cached by GitLab
    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
@@ -98,6 +100,41 @@ test:
         when: always
       - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
         when: always
+
+# =========================================================
+# Staging Stage
+# =========================================================
+sonarcloud-check:
+  stage: sonar
+  image:
+    # Using this because it's more lightweight
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_PROJECT_KEY: "my-java-springboot-project"
+    SONAR_PROJECT_NAME: "My Java Spring Boot Project"
+    SONAR_ORGANIZATION: "trainmefordevsecops"
+    SONAR_SCANNER_OPTS: "-Xmx1024m"
+  script:
+    # 1. Build the project with Gradle
+    # Since I'm using sonar-scanner-cli image I have to first build
+    - ./gradlew clean build
+
+    # 2. Run SonarScanner CLI
+    - sonar-scanner \
+        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+        -Dsonar.organization=$SONAR_ORGANIZATION \
+        -Dsonar.projectName="$SONAR_PROJECT_NAME" \
+        -Dsonar.sources=src/main/java \
+        -Dsonar.java.binaries=build/classes/java/main \
+        -Dsonar.host.url=https://sonarcloud.io \
+        -Dsonar.login=$SONAR_TOKEN
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+      when: always
 
 # =========================================================
 # Staging Stage
