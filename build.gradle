@@ -45,7 +45,7 @@ dependencies {
    implementation 'org.postgresql:postgresql:42.6.0'
 
    // Swagger
-   implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'   
+   implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
    implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
    implementation 'jakarta.el:jakarta.el-api:6.0.1'
 
@@ -89,4 +89,79 @@ bootRun {
             }
         }
     }
+}
+
+ext.testSummary = [
+    unit: [success: 0, failed: 0, skipped: 0, duration: 0.0],
+    integration: [success: 0, failed: 0, skipped: 0, duration: 0.0],
+    htmlReport: ''
+]
+
+tasks.named('test') { testTask ->
+    def startTime = 0L
+    doFirst { startTime = System.nanoTime() }
+
+    useJUnitPlatform { excludeTags 'integration' }
+    ignoreFailures = true
+    testLogging {
+        events "FAILED", "SKIPPED", "STANDARD_OUT", "STANDARD_ERROR"
+        exceptionFormat "full"
+        showStandardStreams = true
+    }
+
+    afterSuite { desc, result ->
+        if (!desc.parent) {
+            testSummary.unit.success = result.successfulTestCount as int
+            testSummary.unit.failed = result.failedTestCount as int
+            testSummary.unit.skipped = result.skippedTestCount as int
+            testSummary.unit.duration = (System.nanoTime() - startTime) / 1_000_000_000.0
+        }
+    }
+
+    // Run integrationTest after unit test
+    finalizedBy tasks.named('integrationTest')
+}
+
+task integrationTest(type: Test) {
+    description = 'Runs integration tests'
+    group = 'verification'
+
+    def startTime = 0L
+    doFirst { startTime = System.nanoTime() }
+
+    useJUnitPlatform { includeTags 'integration' }
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    ignoreFailures = true
+    testLogging {
+        events "FAILED", "SKIPPED", "STANDARD_OUT", "STANDARD_ERROR"
+        exceptionFormat "full"
+        showStandardStreams = true
+    }
+
+    afterSuite { desc, result ->
+        if (!desc.parent) {
+            testSummary.integration.success = result.successfulTestCount as int
+            testSummary.integration.failed = result.failedTestCount as int
+            testSummary.integration.skipped = result.skippedTestCount as int
+            testSummary.integration.duration = (System.nanoTime() - startTime) / 1_000_000_000.0
+        }
+    }
+}
+
+gradle.buildFinished {
+    def totalDuration = testSummary.unit.duration + testSummary.integration.duration
+    println "\n┌───────────────────────────────┐"
+    println "│ Combined Test Summary         │"
+    println "├───────────────────────────────┤"
+    println "│ Unit Successes       : ${testSummary.unit.success}"
+    println "│ Unit Failures        : ${testSummary.unit.failed}"
+    println "│ Unit Skipped         : ${testSummary.unit.skipped}"
+    println "│ Unit Duration (s)    : ${String.format('%.2f', testSummary.unit.duration)}"
+    println "│ Integration Success  : ${testSummary.integration.success}"
+    println "│ Integration Failures : ${testSummary.integration.failed}"
+    println "│ Integration Skipped  : ${testSummary.integration.skipped}"
+    println "│ Integration Duration(s): ${String.format('%.2f', testSummary.integration.duration)}"
+    println "│ Total Duration (s)   : ${String.format('%.2f', totalDuration)}"
+    println "└───────────────────────────────┘"
 }
