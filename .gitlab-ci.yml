@@ -124,7 +124,7 @@ sonar:
   variables:
     # Use the project-level SONAR_HOST_URL (set in GitLab CI variables)
     # or hardcode http://<VM_IP>:9000 if needed
-    SONAR_HOST_URL: "$SONAR_HOST_URL"
+    SONAR_HOST_URL: "http://192.168.120.4:9000"
   before_script:
     - chmod +x gradlew
   script:
@@ -140,6 +140,7 @@ sonar:
       when: always
     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
       when: always
+
 # =========================================================
 # Staging Stage
 # =========================================================
