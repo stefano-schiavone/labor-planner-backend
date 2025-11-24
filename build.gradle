@@ -54,6 +54,9 @@ dependencies {
    implementation "org.optaplanner:optaplanner-spring-boot-starter"
    testImplementation("org.optaplanner:optaplanner-test")
 
+   // SonarQube
+
+
    // H2 Database
    testImplementation 'com.h2database:h2'
 
@@ -164,4 +167,19 @@ gradle.buildFinished {
     println "│ Integration Duration(s): ${String.format('%.2f', testSummary.integration.duration)}"
     println "│ Total Duration (s)   : ${String.format('%.2f', totalDuration)}"
     println "└───────────────────────────────┘"
+}
+
+sonarqube {
+    properties {
+        // set a sensible sonar.projectKey and name for your project
+        property "sonar.projectKey", "labor-planner-backend"
+        property "sonar.projectName", "Labor Planner Backend"
+
+        // Use CI-provided env vars at runtime (set these in GitLab CI variables)
+        property "sonar.host.url", System.getenv("SONAR_HOST_URL") ?: "http://sonarqube:9000"
+        property "sonar.login", System.getenv("SONAR_TOKEN") ?: ""
+
+        // Java binaries location for Sonar
+        property "sonar.java.binaries", "build/classes/java/main"
+    }
 }
