@@ -114,6 +114,7 @@ sonar:
   variables:
     # If left empty the job will probe the defaults below.
     SONAR_HOST_URL: "$SONAR_HOST_URL"
+    SONAR_TOKEN: "$SONAR_TOKEN"
   before_script:
     - chmod +x gradlew
   script:
