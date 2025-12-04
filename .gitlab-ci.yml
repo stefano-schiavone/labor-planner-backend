@@ -20,8 +20,9 @@ stages:
 # =========================================================
 variables:
    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-   SONAR_HOST_URL: http://sonarqube:9000
-   SONAR_TOKEN: squ_e674212a80e2b2df73bb77979fc1895ab5620ba0
+   SONAR_HOST_URL: "http://sonarqube:9000"
+   SONAR_TOKEN: "squ_e674212a80e2b2df73bb77979fc1895ab5620ba0"
+   # SONAR_TOKEN: "sqa_197e411cdfaf7864b26146ecd774901221dd0613"
    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
    # I keep Gradle cache inside the project so it can be cached by GitLab
    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
