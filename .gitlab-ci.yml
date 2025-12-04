@@ -113,6 +113,8 @@ sonar:
   stage: sonar
   image: gradle:8.14.3-jdk21-jammy
   needs:
+    - job: build
+      artifacts: true
     - job: test
       artifacts: true
   cache:
