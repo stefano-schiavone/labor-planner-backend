@@ -156,33 +156,53 @@ test:
 sonar:
   stage: sonar
   image: gradle:8.14.3-jdk21-jammy
+  services:
+    - name: sonarqube:community
+      alias: sonarqube
   variables:
-    # Local job host variable — this forces the job to talk to your external Sonar server.
-    SONAR_CI_HOST: "http://192.168.120.4:9000"
+    SONAR_HOST_URL: "http://sonarqube:9000"
+    SONAR_WAIT_TIMEOUT: "240"
+    SONAR_WAIT_INTERVAL: "5"
+  before_script:
+    - chmod +x gradlew
+    - |
+      echo "Waiting for Sonar (service alias 'sonarqube') to be ready at $SONAR_HOST_URL..."
+      END=$((SECONDS + ${SONAR_WAIT_TIMEOUT:-240}))
+      while [ $SECONDS -lt $END ]; do
+        if curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
+          echo "Sonar is up"
+          break
+        fi
+        echo "Sonar not ready yet, sleeping ${SONAR_WAIT_INTERVAL:-5}s..."
+        sleep ${SONAR_WAIT_INTERVAL:-5}
+      done
+      if ! curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
+        echo "ERROR: Sonar did not become ready within ${SONAR_WAIT_TIMEOUT}s"
+        exit 1
+      fi
   script:
     - set -eo pipefail
-    - echo "Running SonarQube analysis against $SONAR_CI_HOST"
-    - chmod +x gradlew
-    # Ensure token exists and is available to this pipeline
+    - echo "Validating SONAR_TOKEN presence and scope..."
     - |
       if [ -z "$SONAR_TOKEN" ]; then
-        echo "ERROR: SONAR_TOKEN is not present in this pipeline. Check Project → Settings → CI/CD → Variables."
-        echo "If SONAR_TOKEN is Protected it will only be exposed to pipelines running on protected refs."
+        echo "ERROR: SONAR_TOKEN not provided to this job. Add it in Project → Settings → CI/CD → Variables."
+        echo "If SONAR_TOKEN is marked Protected it will only be available on protected refs (e.g. main)."
         exit 1
       fi
-    # Validate token against the exact endpoint the scanner uses
+    - echo "Validating SONAR_TOKEN against Sonar at $SONAR_HOST_URL..."
     - |
-      if ! curl -s -u "${SONAR_TOKEN}:" "$SONAR_CI_HOST/api/v2/analysis/version" >/dev/null 2>&1; then
-        echo "ERROR: SONAR_TOKEN validation FAILED against $SONAR_CI_HOST (HTTP 401)."
-        echo "  - Confirm the token was generated on Sonar at $SONAR_CI_HOST and the value is correct in GitLab CI variables."
+      if ! curl -s -u "${SONAR_TOKEN}:" "$SONAR_HOST_URL/api/authentication/validate" >/dev/null 2>&1; then
+        echo "ERROR: SONAR_TOKEN is not valid for $SONAR_HOST_URL (HTTP 401)."
+        echo "Create or copy a token from the Sonar instance at $SONAR_HOST_URL and store it in GitLab CI variables as SONAR_TOKEN."
         exit 1
       fi
-    # Remove stale resolver/properties that may contain wrong sonar.token values
+    - echo "Removing any stale sonar resolver files..."
     - rm -f build/sonar-resolver/properties || true
     - rm -rf .sonar || true
-    # Fresh Gradle build and sonar invocation (no daemon) and force use of -Dsonar.token
+    - echo "Building artifact (no daemon) to ensure fresh Gradle JVM..."
     - ./gradlew --no-daemon clean build -x test
-    - ./gradlew --no-daemon -Dsonar.host.url="$SONAR_CI_HOST" -Dsonar.token="$SONAR_TOKEN" sonar --info
+    - echo "Running Gradle sonar (explicit -Dsonar.token) in a fresh JVM..."
+    - ./gradlew --no-daemon -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN" sonar --info
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
