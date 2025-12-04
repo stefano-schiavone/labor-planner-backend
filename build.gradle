@@ -179,7 +179,7 @@ sonarqube {
 
         // Use CI-provided env vars at runtime (set these in GitLab CI variables)
         property "sonar.host.url", System.getenv("SONAR_HOST_URL")
-        property "sonar.login", System.getenv("SONAR_TOKEN")
+        property "sonar.token", System.getenv("SONAR_TOKEN")
 
         // Java binaries location for Sonar
         property "sonar.java.binaries", "build/classes/java/main"
