@@ -113,38 +113,76 @@ test:
 # We explicitly point to your reachable SonarQube server (SONAR_HOST_URL),
 # validate token with curl, remove any generated resolver file and force
 # Gradle to run in a fresh process (--no-daemon) using -Dsonar.token.
+# sonar:
+#   stage: sonar
+#   image: gradle:8.14.3-jdk21-jammy
+#   services:
+#     - name: sonarqube:community
+#       alias: sonarqube
+#   variables:
+#     SONAR_HOST_URL: "$SONAR_HOST_URL"
+#   script:
+#     - set -eo pipefail
+#     - echo "Running SonarQube analysis against $SONAR_HOST_URL"
+#     - chmod +x gradlew
+#     # Validate the token available to CI before invoking Gradle.
+#     - |
+#       if [ -z "$SONAR_TOKEN" ]; then
+#         echo "ERROR: SONAR_TOKEN is not set in CI variables. Add it in Settings → CI/CD → Variables."
+#         exit 1
+#       fi
+#     - echo "Validating SONAR_TOKEN against Sonar API..."
+#     - if ! curl -s -u "${SONAR_TOKEN}:" "$SONAR_HOST_URL/api/v2/analysis/version" >/dev/null 2>&1; then
+#         echo "SONAR_TOKEN validation failed for $SONAR_HOST_URL (HTTP 401). Ensure the token is correct and available to this pipeline.";
+#         exit 1;
+#       fi
+#     # Remove resolver/properties if created previously to avoid stale sonar.token values
+#     - rm -f build/sonar-resolver/properties || true
+#     - rm -rf .sonar || true
+#     # Build artifact in a fresh Gradle process (no daemon to avoid inherited env/properties)
+#     - ./gradlew --no-daemon clean build -x test
+#     # Force Gradle to use the explicit token passed as system property.
+#     - |
+#       echo "Invoking Gradle sonar with explicit -Dsonar.token (using --no-daemon)..."
+#       ./gradlew --no-daemon -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN" sonar --info
+#   rules:
+#     - if: '$CI_COMMIT_BRANCH == "main"'
+#       when: always
+#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#       when: always
+#     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+#       when: always
+#
 sonar:
   stage: sonar
   image: gradle:8.14.3-jdk21-jammy
-  services:
-    - name: sonarqube:community
-      alias: sonarqube
   variables:
-    SONAR_HOST_URL: "$SONAR_HOST_URL"
+    # Local job host variable — this forces the job to talk to your external Sonar server.
+    SONAR_CI_HOST: "http://192.168.120.4:9000"
   script:
     - set -eo pipefail
-    - echo "Running SonarQube analysis against $SONAR_HOST_URL"
+    - echo "Running SonarQube analysis against $SONAR_CI_HOST"
     - chmod +x gradlew
-    # Validate the token available to CI before invoking Gradle.
+    # Ensure token exists and is available to this pipeline
     - |
       if [ -z "$SONAR_TOKEN" ]; then
-        echo "ERROR: SONAR_TOKEN is not set in CI variables. Add it in Settings → CI/CD → Variables."
+        echo "ERROR: SONAR_TOKEN is not present in this pipeline. Check Project → Settings → CI/CD → Variables."
+        echo "If SONAR_TOKEN is Protected it will only be exposed to pipelines running on protected refs."
         exit 1
       fi
-    - echo "Validating SONAR_TOKEN against Sonar API..."
-    - if ! curl -s -u "${SONAR_TOKEN}:" "$SONAR_HOST_URL/api/v2/analysis/version" >/dev/null 2>&1; then
-        echo "SONAR_TOKEN validation failed for $SONAR_HOST_URL (HTTP 401). Ensure the token is correct and available to this pipeline.";
-        exit 1;
+    # Validate token against the exact endpoint the scanner uses
+    - |
+      if ! curl -s -u "${SONAR_TOKEN}:" "$SONAR_CI_HOST/api/v2/analysis/version" >/dev/null 2>&1; then
+        echo "ERROR: SONAR_TOKEN validation FAILED against $SONAR_CI_HOST (HTTP 401)."
+        echo "  - Confirm the token was generated on Sonar at $SONAR_CI_HOST and the value is correct in GitLab CI variables."
+        exit 1
       fi
-    # Remove resolver/properties if created previously to avoid stale sonar.token values
+    # Remove stale resolver/properties that may contain wrong sonar.token values
     - rm -f build/sonar-resolver/properties || true
     - rm -rf .sonar || true
-    # Build artifact in a fresh Gradle process (no daemon to avoid inherited env/properties)
+    # Fresh Gradle build and sonar invocation (no daemon) and force use of -Dsonar.token
     - ./gradlew --no-daemon clean build -x test
-    # Force Gradle to use the explicit token passed as system property.
-    - |
-      echo "Invoking Gradle sonar with explicit -Dsonar.token (using --no-daemon)..."
-      ./gradlew --no-daemon -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN" sonar --info
+    - ./gradlew --no-daemon -Dsonar.host.url="$SONAR_CI_HOST" -Dsonar.token="$SONAR_TOKEN" sonar --info
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
