@@ -155,7 +155,7 @@ test:
 #
 network-debug:
   stage: test
-  image: curlimages/curl:8.4.0
+  image: gradle:8.14.3-jdk21-jammy
   script:
     - echo "=== /etc/hosts ==="
     - cat /etc/hosts
