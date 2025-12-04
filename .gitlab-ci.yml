@@ -154,7 +154,7 @@ test:
 #       when: always
 #
 sonar-analysis:
-   image: gradle:8.10.0-jdk17-jammy
+   image: gradle:8.10.0-jdk21-jammy
    stage: sonar
    services:
       - name: sonarqube:community
