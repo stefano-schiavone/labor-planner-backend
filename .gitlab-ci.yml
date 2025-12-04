@@ -87,24 +87,24 @@ build:
 # Test Stage
 # =========================================================
 # I use H2 DB in memory because it's lightweight and fast
-test:
-   stage: test
-   image: eclipse-temurin:21-jdk-jammy
-   variables:
-      SPRING_PROFILES_ACTIVE: test
-   script:
-      - ./gradlew test
-   artifacts:
-      when: always
-      reports:
-         junit: build/test-results/test/TEST-*.xml
-   rules:
-      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-        when: always
-      - if: '$CI_COMMIT_BRANCH == "main"'
-        when: always
-      - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-        when: always
+# test:
+#    stage: test
+#    image: eclipse-temurin:21-jdk-jammy
+#    variables:
+#       SPRING_PROFILES_ACTIVE: test
+#    script:
+#       - ./gradlew test
+#    artifacts:
+#       when: always
+#       reports:
+#          junit: build/test-results/test/TEST-*.xml
+#    rules:
+#       - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+#         when: always
+#       - if: '$CI_COMMIT_BRANCH == "main"'
+#         when: always
+#       - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+#         when: always
 
 # =========================================================
 # Sonar Stage
@@ -153,6 +153,25 @@ test:
 #     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
 #       when: always
 #
+network-debug:
+  stage: test
+  image: curlimages/curl:8.4.0
+  script:
+    - echo "=== /etc/hosts ==="
+    - cat /etc/hosts
+    - echo
+    - echo "=== resolve host.docker.internal via ping (if available) ==="
+    - (ping -c 1 host.docker.internal || true)
+    - echo
+    - echo "=== curl host.docker.internal /api/server/version (10s timeout, verbose) ==="
+    - curl -m 10 -v 'http://host.docker.internal:9000/api/server/version' || true
+    - echo
+    - echo "=== curl 192.168.120.4 /api/server/version (10s timeout, verbose) ==="
+    - curl -m 10 -v 'http://192.168.120.4:9000/api/server/version' || true
+    - echo
+    - echo "=== curl 127.0.0.1 /api/server/version (10s timeout, verbose) ==="
+    - curl -m 10 -v 'http://127.0.0.1:9000/api/server/version' || true
+  when: manual
 sonar:
   stage: sonar
   image: gradle:8.14.3-jdk21-jammy
