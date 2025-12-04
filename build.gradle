@@ -179,9 +179,9 @@ sonarqube {
         property "sonar.qualitygate.wait", true
 
         // Use CI-provided env vars at runtime (set these in GitLab CI variables)
-        property "sonar.host.url", System.getenv("SONAR_HOST_URL")
+        // property "sonar.host.url", System.getenv("SONAR_HOST_URL")
         // property "sonar.token", System.getenv("SONAR_TOKEN")
-        property "sonar.token", "squ_e674212a80e2b2df73bb77979fc1895ab5620ba0"
+        // property "sonar.token", "squ_e674212a80e2b2df73bb77979fc1895ab5620ba0"
 
         // Java binaries location for Sonar
         property "sonar.java.binaries", "build/classes/java/main"
