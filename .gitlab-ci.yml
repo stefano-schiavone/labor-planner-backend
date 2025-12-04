@@ -21,7 +21,7 @@ stages:
 variables:
    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
    # SONAR_HOST_URL: "http://sonarqube:9000"
-   SONAR_HOST_URL: "http://192.168.120.4:9000"
+   # SONAR_HOST_URL: "http://192.168.120.4:9000"
    # SONAR_TOKEN: "squ_e674212a80e2b2df73bb77979fc1895ab5620ba0"
    # SONAR_TOKEN: "sqp_2620e1fac3f05e972c2d7507bbe247a2ccd50c5c"
    # SONAR_TOKEN: "sqa_197e411cdfaf7864b26146ecd774901221dd0613"
@@ -162,19 +162,16 @@ sonar:
     paths:
       - "${SONAR_USER_HOME}/cache"
       - sonar-scanner/
-  # services:
-  #     - name: sonarqube:community
-  #       alias: sonarqube
   script:
-    - echo "Starting Sonar analysis (minimal configuration)"
+    - echo "Starting Sonar analysis (external Sonar at $SONAR_HOST_URL)"
     - chmod +x gradlew
     - |
       if [ -z "$SONAR_TOKEN" ]; then
-        echo "ERROR: SONAR_TOKEN is not set in CI variables. Add it in Settings → CI/CD → Variables (Masked)."
+        echo "ERROR: SONAR_TOKEN not set in CI variables. Add it in Settings → CI/CD → Variables (Masked)."
         exit 1
       fi
-    - ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
-  allow_failure: true
+    - ./gradlew --no-daemon sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
+  allow_failure: true   # optional: remove if you want the job to be blocking
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
