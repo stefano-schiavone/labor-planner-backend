@@ -174,8 +174,9 @@ gradle.buildFinished {
 sonarqube {
     properties {
         // set a sensible sonar.projectKey and name for your project
-        property "sonar.projectKey", "labor-planner-backend"
+        property "sonar.projectKey", "I558150_labor-planner-backend_5c2246fe-6e45-4577-ae07-a133c852e12c"
         property "sonar.projectName", "Labor Planner Backend"
+        property "sonar.qualitygate.wait", true
 
         // Use CI-provided env vars at runtime (set these in GitLab CI variables)
         property "sonar.host.url", System.getenv("SONAR_HOST_URL")
