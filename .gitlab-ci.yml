@@ -20,6 +20,8 @@ stages:
 # =========================================================
 variables:
    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+   SONAR_HOST_URL=http://sonarqube:9000
+   SONAR_TOKEN=squ_e674212a80e2b2df73bb77979fc1895ab5620ba0
    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
    # I keep Gradle cache inside the project so it can be cached by GitLab
    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
@@ -106,7 +108,7 @@ test:
 # =========================================================
 sonar:
   stage: sonar
-  image: sonarsource/sonar-scanner-cli:latest
+  image: gradle:8.14.3-jdk21-jammy
   services:
     - name: sonarqube:community
       alias: sonarqube
@@ -114,36 +116,43 @@ sonar:
     SONAR_HOST_URL: "$SONAR_HOST_URL"
     SONAR_WAIT_TIMEOUT: "180"
     SONAR_WAIT_INTERVAL: "5"
-  before_script:
-    - |
-      echo "Waiting for SonarQube at $SONAR_HOST_URL..."
-      END=$((SECONDS + ${SONAR_WAIT_TIMEOUT:-180}))
-      while [ $SECONDS -lt $END ]; do
-        if curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
-          break
-        fi
-        sleep ${SONAR_WAIT_INTERVAL:-5}
-      done
-      if ! curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
-        echo "ERROR: SonarQube not ready after ${SONAR_WAIT_TIMEOUT}s"
-        exit 1
-      fi
-  script:
-    - set -eo pipefail
-    - echo "Validating SONAR_TOKEN..."
-    - if ! curl -s -u "${SONAR_TOKEN}:" "$SONAR_HOST_URL/api/authentication/validate" >/dev/null 2>&1; then
-        echo "SONAR_TOKEN is not valid for $SONAR_HOST_URL (401). Aborting." && exit 1;
-      fi
-    - echo "Running sonar-scanner..."
-    - |
-      sonar-scanner \
-        -Dsonar.host.url="$SONAR_HOST_URL" \
-        -Dsonar.login="$SONAR_TOKEN" \
-        -Dsonar.projectKey="${SONAR_PROJECT_KEY:-$CI_PROJECT_PATH}" \
-        -Dsonar.projectName="${SONAR_PROJECT_NAME:-$CI_PROJECT_NAME}" \
-        -Dsonar.sources="${SONAR_SOURCES:-.}" \
-        -Dsonar.java.binaries="${SONAR_JAVA_BINARIES:-build/classes/java/main}" \
-        ${SONAR_EXTRA_OPTS:-}
+    script:
+      - echo "Running SonarQube analysis..."
+      - chmod +x gradlew
+      - ./gradlew sonar -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN
+  # before_script:
+  #   - chmod +x gradlew
+  #   - |
+  #     echo "Waiting for SonarQube at $SONAR_HOST_URL to be available..."
+  #     END=$((SECONDS + ${SONAR_WAIT_TIMEOUT:-180}))
+  #     while [ $SECONDS -lt $END ]; do
+  #       if curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
+  #         break
+  #       fi
+  #       sleep ${SONAR_WAIT_INTERVAL:-5}
+  #     done
+  #     if ! curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
+  #       echo "ERROR: SonarQube not ready after ${SONAR_WAIT_TIMEOUT}s"
+  #       exit 1
+  #     fi
+  # script:
+  #   - set -eo pipefail
+  #   - echo "Building artifact (skip tests) in a fresh Gradle process (no daemon)..."
+  #   - ./gradlew --no-daemon clean build -x test
+  #   - |
+  #     echo "Validating SONAR_TOKEN (will not print the token)..."
+  #     if curl -s -u "${SONAR_TOKEN}:" "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
+  #       echo "SONAR_TOKEN available to the job and valid for $SONAR_HOST_URL"
+  #     else
+  #       echo "SONAR_TOKEN seems invalid or not available in this job (HTTP 401)."
+  #       echo "Check GitLab CI/CD variable: key=SONAR_TOKEN, ensure scope/protected setting allows this pipeline to use it."
+  #       exit 1
+  #     fi
+  #   - |
+  #     # Use a local copy of the token and ensure Gradle sees a fresh env (no SONAR_TOKEN)
+  #     local_token="$SONAR_TOKEN"
+  #     echo "Running Gradle sonar in a fresh process (no daemon) with explicit -Dsonar.token (SONAR_TOKEN cleared for this command)..."
+  #     SONAR_TOKEN= ./gradlew --no-daemon -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$local_token" sonar --info
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
@@ -151,44 +160,6 @@ sonar:
       when: always
     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
       when: always
-
-# Debug-only job: run this to inspect the resolver and gradle properties (token lines redacted).
-sonar-debug:
-  stage: sonar
-  image: gradle:8.14.3-jdk21-jammy
-  services:
-    - name: sonarqube:community
-      alias: sonarqube
-  script:
-    - set -eo pipefail
-    - chmod +x gradlew || true
-    - echo "Waiting for SonarQube..."
-    - |
-      END=$((SECONDS + 120))
-      while [ $SECONDS -lt $END ]; do
-        if curl -sSf "http://sonarqube:9000/api/server/version" >/dev/null 2>&1; then break; fi
-        sleep 3
-      done
-    - echo "Resolver properties (if exists):"
-    - if [ -f build/sonar-resolver/properties ]; then
-        sed -n '1,200p' build/sonar-resolver/properties | sed -e 's/sonar.token=.*/sonar.token=<REDACTED>/' -e 's/SONAR_TOKEN=.*/SONAR_TOKEN=<REDACTED>/';
-      else
-        echo "No build/sonar-resolver/properties file found yet.";
-      fi
-    - echo "Project gradle.properties (if exists):"
-    - if [ -f gradle.properties ]; then
-        sed -n '1,200p' gradle.properties | sed -e 's/sonar.token=.*/sonar.token=<REDACTED>/';
-      else
-        echo "No project gradle.properties found.";
-      fi
-    - echo "User gradle.properties (~/.gradle/gradle.properties) (if exists):"
-    - if [ -f "$HOME/.gradle/gradle.properties" ]; then
-        sed -n '1,200p' "$HOME/.gradle/gradle.properties" | sed -e 's/sonar.token=.*/sonar.token=<REDACTED>/';
-      else
-        echo "No user gradle.properties found.";
-      fi
-  rules:
-    - when: manual
 
 # =========================================================
 # Staging Stage
