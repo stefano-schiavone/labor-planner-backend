@@ -125,9 +125,9 @@ sonar:
     # Use the newer 'sonar' task when available; fall back to 'sonarqube' if needed.
     - |
       if ./gradlew -q help --task sonar >/dev/null 2>&1; then
-        ./gradlew --no-daemon sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
+        ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
       else
-        ./gradlew --no-daemon sonarqube -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
+        ./gradlew sonarqube -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
       fi
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
