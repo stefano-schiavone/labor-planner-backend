@@ -113,7 +113,6 @@ sonar:
   variables:
     # If left empty the job will probe the defaults below.
     SONAR_HOST_URL: "$SONAR_HOST_URL"
-    SONAR_TOKEN: "$SONAR_TOKEN"
   before_script:
     - chmod +x gradlew
   script:
@@ -121,9 +120,7 @@ sonar:
     - echo "Building artifact (skip tests)..."
     - ./gradlew clean build -x test
     - echo "Running Gradle sonar task (will contact $SONAR_HOST_URL)..."
-    - echo "Running Gradle sonar task (will use {$SONAR_TOKEN})..."
-    - echo $SONAR_TOKEN
-    - ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
+    - ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
     # Use the newer 'sonar' task when available; fall back to 'sonarqube' if needed.
     # - |
     #   if ./gradlew -q help --task sonar >/dev/null 2>&1; then
