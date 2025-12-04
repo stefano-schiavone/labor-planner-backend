@@ -116,6 +116,9 @@ test:
 sonar:
   stage: sonar
   image: gradle:8.14.3-jdk21-jammy
+  services:
+    - name: sonarqube:community
+      alias: sonarqube
   variables:
     SONAR_HOST_URL: "$SONAR_HOST_URL"
   script:
