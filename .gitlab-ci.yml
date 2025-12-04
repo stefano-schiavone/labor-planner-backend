@@ -162,9 +162,9 @@ sonar:
     paths:
       - "${SONAR_USER_HOME}/cache"
       - sonar-scanner/
-  services:
-      - name: sonarqube:community
-        alias: sonarqube
+  # services:
+  #     - name: sonarqube:community
+  #       alias: sonarqube
   script:
     - echo "Starting Sonar analysis (minimal configuration)"
     - chmod +x gradlew
