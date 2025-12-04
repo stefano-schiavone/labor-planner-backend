@@ -121,6 +121,7 @@ sonar:
     - echo "Building artifact (skip tests)..."
     - ./gradlew clean build -x test
     - echo "Running Gradle sonar task (will contact $SONAR_HOST_URL)..."
+    - echo "Running Gradle sonar task (will use $SONAR_TOKEN)..."
     # Use the newer 'sonar' task when available; fall back to 'sonarqube' if needed.
     - |
       if ./gradlew -q help --task sonar >/dev/null 2>&1; then
