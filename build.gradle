@@ -78,23 +78,6 @@ tasks.withType(JavaCompile) {
     options.compilerArgs += ['-parameters']
 }
 
-// For SonarQube tests
-jacoco {
-    toolVersion = "0.8.12"
-}
-
-test {
-    useJUnitPlatform()
-    finalizedBy jacocoTestReport
-}
-
-jacocoTestReport {
-    dependsOn test
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
 
 // Customizing Test output
 
@@ -190,6 +173,24 @@ gradle.buildFinished {
     println "│ Integration Duration(s): ${String.format('%.2f', testSummary.integration.duration)}"
     println "│ Total Duration (s)   : ${String.format('%.2f', totalDuration)}"
     println "└───────────────────────────────┘"
+}
+
+// For SonarQube tests
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
 
 sonarqube {
