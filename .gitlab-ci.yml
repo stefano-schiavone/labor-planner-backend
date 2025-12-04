@@ -104,20 +104,6 @@ test:
 # =========================================================
 # Sonar Stage
 # =========================================================
-
-# sonar-connectivity-check:
-#   image: curlimages/curl:8.5.0
-#   stage: sonar
-#   # override global before_script so the chmod global step is not executed here
-#   before_script: []
-#   script:
-#     - echo "SONAR_HOST_URL = $SONAR_HOST_URL"
-#     - echo "Testing Sonar API reachability from runner..."
-#     - curl -v --max-time 10 --network host "$SONAR_HOST_URL/api/server/version" || true
-#   rules:
-#     - when: manual
-
-
 sonar:
   stage: sonar
   image: gradle:8.14.3-jdk21-jammy
