@@ -146,9 +146,9 @@ sonar:
     - |
       # Use a local copy of the token and clear SONAR_TOKEN in the environment
       local_token="$SONAR_TOKEN"
-      export SONAR_TOKEN=""
+      export SONAR_TOKEN="squ_e674212a80e2b2df73bb77979fc1895ab5620ba0"
       echo "Running Gradle sonar with explicit -Dsonar.login (sonar.token env cleared for Gradle process)..."
-      ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$local_token"
+      ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$local_token" --info
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
