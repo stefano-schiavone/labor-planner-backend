@@ -20,7 +20,6 @@ stages:
 # =========================================================
 variables:
    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-   SONAR_TOKEN: "squ_e674212a80e2b2df73bb77979fc1895ab5620ba0"
    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
    # I keep Gradle cache inside the project so it can be cached by GitLab
    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
@@ -112,24 +111,43 @@ sonar:
     - name: sonarqube:community
       alias: sonarqube
   variables:
-    # If left empty the job will probe the defaults below.
+    # Keep SONAR_HOST_URL configured in CI variables (example: http://sonarqube:9000)
     SONAR_HOST_URL: "$SONAR_HOST_URL"
-    SONAR_TOKEN: "$SONAR_TOKEN"
+    # Do NOT hardcode tokens here. Create SONAR_TOKEN in GitLab CI/CD variables (masked).
+    # SONAR_TOKEN: "$SONAR_TOKEN"
+    # How long we'll wait for Sonar to become ready (seconds)
+    SONAR_WAIT_TIMEOUT: "120"
+    SONAR_WAIT_INTERVAL: "5"
   before_script:
     - chmod +x gradlew
+    # Wait until SonarQube responds to the server version endpoint or timeout
+    - |
+      echo "Waiting for SonarQube at $SONAR_HOST_URL to be available..."
+      END=$((SECONDS + ${SONAR_WAIT_TIMEOUT:-120}))
+      while [ $SECONDS -lt $END ]; do
+        if curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
+          echo "SonarQube is up"
+          break
+        fi
+        echo "SonarQube not up yet, sleeping ${SONAR_WAIT_INTERVAL:-5}s..."
+        sleep ${SONAR_WAIT_INTERVAL:-5}
+      done
+      if ! curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
+        echo "ERROR: SonarQube did not become ready within ${SONAR_WAIT_TIMEOUT}s"
+        exit 1
+      fi
   script:
     - set -eo pipefail
     - echo "Building artifact (skip tests)..."
     - ./gradlew clean build -x test
     - echo "Running Gradle sonar task (will contact $SONAR_HOST_URL)..."
-    - ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
-    # Use the newer 'sonar' task when available; fall back to 'sonarqube' if needed.
-    # - |
-    #   if ./gradlew -q help --task sonar >/dev/null 2>&1; then
-    #     ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
-    #   else
-    #     ./gradlew sonarqube -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
-    #   fi
+    # Use sonar.login (token) and also pass sonar.token for compatibility
+    - |
+      if [ -z "$SONAR_TOKEN" ]; then
+        echo "ERROR: SONAR_TOKEN is not set. Create a token in your SonarQube instance and add it to GitLab CI/CD variables (key: SONAR_TOKEN)."
+        exit 1
+      fi
+    - ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" -Dsonar.token="$SONAR_TOKEN"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
