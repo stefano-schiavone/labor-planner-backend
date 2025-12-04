@@ -131,11 +131,10 @@ sonar:
       fi
   script:
     - set -eo pipefail
-    - echo "Building artifact (skip tests)..."
-    - ./gradlew clean build -x test
+    - echo "Building artifact (skip tests) in a fresh Gradle process (no daemon)..."
+    - ./gradlew --no-daemon clean build -x test
     - |
       echo "Validating SONAR_TOKEN (will not print the token)..."
-      # Try to validate the token as provided to the job (this will return version on success)
       if curl -s -u "${SONAR_TOKEN}:" "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
         echo "SONAR_TOKEN available to the job and valid for $SONAR_HOST_URL"
       else
@@ -144,11 +143,10 @@ sonar:
         exit 1
       fi
     - |
-      # Use a local copy of the token and clear SONAR_TOKEN in the environment
+      # Use a local copy of the token and ensure Gradle sees a fresh env (no SONAR_TOKEN)
       local_token="$SONAR_TOKEN"
-      export SONAR_TOKEN="squ_e674212a80e2b2df73bb77979fc1895ab5620ba0"
-      echo "Running Gradle sonar with explicit -Dsonar.login (sonar.token env cleared for Gradle process)..."
-      ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$local_token" --info
+      echo "Running Gradle sonar in a fresh process (no daemon) with explicit -Dsonar.token (SONAR_TOKEN cleared for this command)..."
+      SONAR_TOKEN= ./gradlew --no-daemon -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$local_token" sonar --info
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
