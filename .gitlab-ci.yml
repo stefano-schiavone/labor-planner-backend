@@ -70,6 +70,8 @@ build:
    artifacts:
       paths:
          - build/libs/*.jar # Save the JAR for later stages
+         - build/classes   # Needed for Sonar
+         - build/resources
       expire_in: 1 week
    cache:
       policy: pull-push
@@ -109,73 +111,12 @@ test:
 # =========================================================
 # Sonar Stage
 # =========================================================
-# ---- Modified Sonar job: do NOT start a sonarqube service here.
-# We explicitly point to your reachable SonarQube server (SONAR_HOST_URL),
-# validate token with curl, remove any generated resolver file and force
-# Gradle to run in a fresh process (--no-daemon) using -Dsonar.token.
-# sonar:
-#   stage: sonar
-#   image: gradle:8.14.3-jdk21-jammy
-#   services:
-#     - name: sonarqube:community
-#       alias: sonarqube
-#   variables:
-#     SONAR_HOST_URL: "$SONAR_HOST_URL"
-#   script:
-#     - set -eo pipefail
-#     - echo "Running SonarQube analysis against $SONAR_HOST_URL"
-#     - chmod +x gradlew
-#     # Validate the token available to CI before invoking Gradle.
-#     - |
-#       if [ -z "$SONAR_TOKEN" ]; then
-#         echo "ERROR: SONAR_TOKEN is not set in CI variables. Add it in Settings → CI/CD → Variables."
-#         exit 1
-#       fi
-#     - echo "Validating SONAR_TOKEN against Sonar API..."
-#     - if ! curl -s -u "${SONAR_TOKEN}:" "$SONAR_HOST_URL/api/v2/analysis/version" >/dev/null 2>&1; then
-#         echo "SONAR_TOKEN validation failed for $SONAR_HOST_URL (HTTP 401). Ensure the token is correct and available to this pipeline.";
-#         exit 1;
-#       fi
-#     # Remove resolver/properties if created previously to avoid stale sonar.token values
-#     - rm -f build/sonar-resolver/properties || true
-#     - rm -rf .sonar || true
-#     # Build artifact in a fresh Gradle process (no daemon to avoid inherited env/properties)
-#     - ./gradlew --no-daemon clean build -x test
-#     # Force Gradle to use the explicit token passed as system property.
-#     - |
-#       echo "Invoking Gradle sonar with explicit -Dsonar.token (using --no-daemon)..."
-#       ./gradlew --no-daemon -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN" sonar --info
-#   rules:
-#     - if: '$CI_COMMIT_BRANCH == "main"'
-#       when: always
-#     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-#       when: always
-#     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-#       when: always
-#
-network-debug:
-  stage: test
-  image: gradle:8.14.3-jdk21-jammy
-  script:
-    - echo "=== /etc/hosts ==="
-    - cat /etc/hosts
-    - echo
-    - echo "=== resolve host.docker.internal via ping (if available) ==="
-    - (ping -c 1 host.docker.internal || true)
-    - echo
-    - echo "=== curl host.docker.internal /api/server/version (10s timeout, verbose) ==="
-    - curl -m 10 -v 'http://host.docker.internal:9000/api/server/version' || true
-    - echo
-    - echo "=== curl 192.168.120.4 /api/server/version (10s timeout, verbose) ==="
-    - curl -m 10 -v 'http://192.168.120.4:9000/api/server/version' || true
-    - echo
-    - echo "=== curl 127.0.0.1 /api/server/version (10s timeout, verbose) ==="
-    - curl -m 10 -v 'http://127.0.0.1:9000/api/server/version' || true
-  when: manual
-
 sonar:
   stage: sonar
   image: gradle:8.14.3-jdk21-jammy
+  needs:
+    - job: build
+      artifacts: true
   cache:
     policy: pull-push
     key: "sonar-cache-$CI_COMMIT_REF_SLUG"
@@ -191,9 +132,9 @@ sonar:
         exit 1
       fi
       # Build (skip tests for speed) so build/classes/java/main exists
-    - ./gradlew --no-daemon clean build -x test
+    # - ./gradlew --no-daemon clean build -x test
     - ./gradlew --no-daemon sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
-  allow_failure: true   # optional: remove if you want the job to be blocking
+  allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
