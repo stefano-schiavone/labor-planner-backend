@@ -166,7 +166,7 @@ sonar:
   before_script:
     - chmod +x gradlew
     - |
-      echo "Waiting for Sonar (service alias 'sonarqube') to be ready at $SONAR_HOST_URL..."
+      echo "Waiting for Sonar (service alias 'sonarqube') at $SONAR_HOST_URL..."
       END=$((SECONDS + ${SONAR_WAIT_TIMEOUT:-240}))
       while [ $SECONDS -lt $END ]; do
         if curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
@@ -182,27 +182,46 @@ sonar:
       fi
   script:
     - set -eo pipefail
-    - echo "Validating SONAR_TOKEN presence and scope..."
+    - echo "Preparing Sonar analysis against $SONAR_HOST_URL (won't print tokens)"
+    # validate existing token (if provided) or generate one with admin:admin for the in-job Sonar
     - |
-      if [ -z "$SONAR_TOKEN" ]; then
-        echo "ERROR: SONAR_TOKEN not provided to this job. Add it in Project → Settings → CI/CD → Variables."
-        echo "If SONAR_TOKEN is marked Protected it will only be available on protected refs (e.g. main)."
-        exit 1
+      GENERATED_TOKEN_NAME=""
+      GENERATED=0
+      validate_token() {
+        curl -s -u "${1}:" "$SONAR_HOST_URL/api/v2/analysis/version" >/dev/null 2>&1
+      }
+      if [ -n "$SONAR_TOKEN" ] && validate_token "$SONAR_TOKEN"; then
+        echo "SONAR_TOKEN provided to the job is valid for $SONAR_HOST_URL"
+      else
+        echo "SONAR_TOKEN missing or invalid for $SONAR_HOST_URL — generating temporary token via admin:admin"
+        GENERATED_TOKEN_NAME="gitlab-ci-${CI_PIPELINE_ID:-manual}-${CI_JOB_ID:-0}"
+        # create token (response contains JSON with "token":"..."), don't print it
+        resp=$(curl -s -u admin:Stefano.Schiavone32 -X POST "$SONAR_HOST_URL/api/user_tokens/generate?name=$GENERATED_TOKEN_NAME")
+        token=$(echo "$resp" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+        if [ -z "$token" ]; then
+          echo "Failed to generate token. Sonar response:"
+          echo "$resp"
+          echo "If your Sonar instance does not use default admin:admin credentials, create a token manually and add it to GitLab CI variables as SONAR_TOKEN."
+          exit 1
+        fi
+        export SONAR_TOKEN="$token"
+        GENERATED=1
+        echo "Temporary SONAR token generated for this job (will be revoked after scan)."
       fi
-    - echo "Validating SONAR_TOKEN against Sonar at $SONAR_HOST_URL..."
-    - |
-      if ! curl -s -u "${SONAR_TOKEN}:" "$SONAR_HOST_URL/api/authentication/validate" >/dev/null 2>&1; then
-        echo "ERROR: SONAR_TOKEN is not valid for $SONAR_HOST_URL (HTTP 401)."
-        echo "Create or copy a token from the Sonar instance at $SONAR_HOST_URL and store it in GitLab CI variables as SONAR_TOKEN."
-        exit 1
-      fi
-    - echo "Removing any stale sonar resolver files..."
+    - echo "Removing stale sonar resolver files if present..."
     - rm -f build/sonar-resolver/properties || true
     - rm -rf .sonar || true
     - echo "Building artifact (no daemon) to ensure fresh Gradle JVM..."
     - ./gradlew --no-daemon clean build -x test
-    - echo "Running Gradle sonar (explicit -Dsonar.token) in a fresh JVM..."
+    - echo "Invoking Gradle sonar (no daemon) with explicit -Dsonar.token (token hidden)..."
     - ./gradlew --no-daemon -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN" sonar --info
+    - |
+      if [ "$GENERATED" = "1" ]; then
+        echo "Revoking temporary token $GENERATED_TOKEN_NAME..."
+        # revoke token created earlier; ignore failure but attempt revoke
+        curl -s -u admin:admin -X POST "$SONAR_HOST_URL/api/user_tokens/revoke?name=$GENERATED_TOKEN_NAME" >/dev/null || true
+        echo "Revocation attempted."
+      fi
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
