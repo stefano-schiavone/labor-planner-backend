@@ -20,11 +20,6 @@ stages:
 # =========================================================
 variables:
    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-   # SONAR_HOST_URL: "http://sonarqube:9000"
-   # SONAR_HOST_URL: "http://192.168.120.4:9000"
-   # SONAR_TOKEN: "squ_e674212a80e2b2df73bb77979fc1895ab5620ba0"
-   # SONAR_TOKEN: "sqp_2620e1fac3f05e972c2d7507bbe247a2ccd50c5c"
-   # SONAR_TOKEN: "sqa_197e411cdfaf7864b26146ecd774901221dd0613"
    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
    # I keep Gradle cache inside the project so it can be cached by GitLab
    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
@@ -92,14 +87,17 @@ build:
 test:
    stage: test
    image: eclipse-temurin:21-jdk-jammy
+   artifacts:
+    when: always
+    paths:
+      - build/reports/jacoco/test/jacocoTestReport.xml
+      - build/test-results/test
+   reports:
+      junit: build/test-results/test/TEST-*.xml
    variables:
       SPRING_PROFILES_ACTIVE: test
    script:
-      - ./gradlew test
-   artifacts:
-      when: always
-      reports:
-         junit: build/test-results/test/TEST-*.xml
+      - ./gradlew test jacocoTestReport
    rules:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
         when: always
