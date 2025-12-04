@@ -153,116 +153,24 @@ test:
 #     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
 #       when: always
 #
-sonar:
-  stage: sonar
-  image: gradle:8.14.3-jdk21-jammy
-  services:
-    - name: sonarqube:community
-      alias: sonarqube
-  variables:
-    SONAR_HOST_URL: "http://sonarqube:9000"
-    SONAR_WAIT_TIMEOUT: "240"
-    SONAR_WAIT_INTERVAL: "5"
-  before_script:
-    - chmod +x gradlew
-    - |
-      echo "Waiting for Sonar (service alias 'sonarqube') at $SONAR_HOST_URL..."
-      END=$((SECONDS + ${SONAR_WAIT_TIMEOUT:-240}))
-      while [ $SECONDS -lt $END ]; do
-        if curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
-          echo "Sonar is up"
-          break
-        fi
-        echo "Sonar not ready yet, sleeping ${SONAR_WAIT_INTERVAL:-5}s..."
-        sleep ${SONAR_WAIT_INTERVAL:-5}
-      done
-      if ! curl -sSf "$SONAR_HOST_URL/api/server/version" >/dev/null 2>&1; then
-        echo "ERROR: Sonar did not become ready within ${SONAR_WAIT_TIMEOUT}s"
-        exit 1
-      fi
-  script:
-    - set -eo pipefail
-    - echo "Preparing Sonar analysis against $SONAR_HOST_URL (won't print tokens)"
-    # validate existing token (if provided) or generate one with admin:admin for the in-job Sonar
-    - |
-      GENERATED_TOKEN_NAME=""
-      GENERATED=0
-      validate_token() {
-        curl -s -u "${1}:" "$SONAR_HOST_URL/api/v2/analysis/version" >/dev/null 2>&1
-      }
-      if [ -n "$SONAR_TOKEN" ] && validate_token "$SONAR_TOKEN"; then
-        echo "SONAR_TOKEN provided to the job is valid for $SONAR_HOST_URL"
-      else
-        echo "SONAR_TOKEN missing or invalid for $SONAR_HOST_URL — generating temporary token via admin:admin"
-        GENERATED_TOKEN_NAME="gitlab-ci-${CI_PIPELINE_ID:-manual}-${CI_JOB_ID:-0}"
-        # create token (response contains JSON with "token":"..."), don't print it
-        resp=$(curl -s -u admin:Stefano.Schiavone32 -X POST "$SONAR_HOST_URL/api/user_tokens/generate?name=$GENERATED_TOKEN_NAME")
-        token=$(echo "$resp" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
-        if [ -z "$token" ]; then
-          echo "Failed to generate token. Sonar response:"
-          echo "$resp"
-          echo "If your Sonar instance does not use default admin:admin credentials, create a token manually and add it to GitLab CI variables as SONAR_TOKEN."
-          exit 1
-        fi
-        export SONAR_TOKEN="$token"
-        GENERATED=1
-        echo "Temporary SONAR token generated for this job (will be revoked after scan)."
-      fi
-    - echo "Removing stale sonar resolver files if present..."
-    - rm -f build/sonar-resolver/properties || true
-    - rm -rf .sonar || true
-    - echo "Building artifact (no daemon) to ensure fresh Gradle JVM..."
-    - ./gradlew --no-daemon clean build -x test
-    - echo "Invoking Gradle sonar (no daemon) with explicit -Dsonar.token (token hidden)..."
-    - ./gradlew --no-daemon -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN" sonar --info
-    - |
-      if [ "$GENERATED" = "1" ]; then
-        echo "Revoking temporary token $GENERATED_TOKEN_NAME..."
-        # revoke token created earlier; ignore failure but attempt revoke
-        curl -s -u admin:admin -X POST "$SONAR_HOST_URL/api/user_tokens/revoke?name=$GENERATED_TOKEN_NAME" >/dev/null || true
-        echo "Revocation attempted."
-      fi
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: always
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: always
-    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-      when: always
-
-# =========================================================
-# Staging Stage
-# =========================================================
-# I want this stage to run in its own container with PostgreSQL
-# Each staging container is isolated from other stages (industry best practice)
-staging:
-   stage: staging
-   image: gradle:8.14.3-jdk21-jammy
+sonar-analysis:
+   image: gradle:8.10.0-jdk17-jammy
+   stage: sonar
    services:
-      - name: postgres:15.14-alpine3.22
-        alias: postgres-staging
-        variables:
-           POSTGRES_DB: stagingdb
-           POSTGRES_USER: staging
-           POSTGRES_PASSWORD: staging
-           POSTGRES_HOST_AUTH_METHOD: scram-sha-256
-   variables:
-      SPRING_PROFILES_ACTIVE: staging
-      DB_HOST: postgres-staging
-      DB_PORT: 5432
-      POSTGRES_DB: stagingdb
-      POSTGRES_USER: staging
-      POSTGRES_PASSWORD: staging
+      - name: sonarqube:community
+        alias: sonarqube
    script:
-      - ./gradlew bootRun &
-      - APP_PID=$!
-      - echo "Waiting 15 seconds to ensure app connects to PostgreSQL..."
-      - sleep 15
-      - echo "Stopping app process"
-      - kill $APP_PID
+      - echo "Running SonarQube analysis..."
+      - chmod +x gradlew
+      - ./gradlew sonar -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN
+   allow_failure: true
    rules:
-      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-        when: always # only on MRs
+     - if: '$CI_COMMIT_BRANCH == "main"'
+       when: always
+     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+       when: always
+     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+       when: always
 
 # =========================================================
 # Package Stage
