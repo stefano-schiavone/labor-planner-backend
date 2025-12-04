@@ -153,24 +153,32 @@ test:
 #     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
 #       when: always
 #
-sonar-analysis:
-   image: gradle:8.10.0-jdk21-jammy
-   stage: sonar
-   services:
-      - name: sonarqube:community
-        alias: sonarqube
-   script:
-      - echo "Running SonarQube analysis..."
-      - chmod +x gradlew
-      - ./gradlew sonar -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN
-   allow_failure: true
-   rules:
-     - if: '$CI_COMMIT_BRANCH == "main"'
-       when: always
-     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-       when: always
-     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-       when: always
+sonar:
+  stage: sonar
+  image: gradle:8.14.3-jdk21-jammy
+  cache:
+    policy: pull-push
+    key: "sonar-cache-$CI_COMMIT_REF_SLUG"
+    paths:
+      - "${SONAR_USER_HOME}/cache"
+      - sonar-scanner/
+  script:
+    - echo "Starting Sonar analysis (minimal configuration)"
+    - chmod +x gradlew
+    - |
+      if [ -z "$SONAR_TOKEN" ]; then
+        echo "ERROR: SONAR_TOKEN is not set in CI variables. Add it in Settings → CI/CD → Variables (Masked)."
+        exit 1
+      fi
+    - ./gradlew sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
+      when: always
 
 # =========================================================
 # Package Stage
