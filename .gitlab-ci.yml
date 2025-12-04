@@ -107,6 +107,9 @@ test:
 sonar:
   stage: sonar
   image: gradle:8.14.3-jdk21-jammy
+  services:
+    - name: sonarqube:community
+      alias: sonarqube
   variables:
     # You can set SONAR_HOST_URL as a CI variable (recommended: http://host.docker.internal:9000)
     # If left empty the job will probe the defaults below.
@@ -116,43 +119,15 @@ sonar:
     - chmod +x gradlew
   script:
     - set -eo pipefail
-    - echo "Resolving Sonar endpoint..."
-    # If connectivity-check produced a URL in artifacts/tmp, prefer that. Otherwise probe candidates.
-    - |
-      EFFECTIVE_SONAR_URL=""
-      if [ -f /tmp/sonar_effective_url ]; then
-        EFFECTIVE_SONAR_URL="$(cat /tmp/sonar_effective_url)"
-      fi
-      if [ -z "$EFFECTIVE_SONAR_URL" ]; then
-        candidates=(
-          "${SONAR_HOST_URL:-}"
-          "http://host.docker.internal:9000"
-          "http://172.17.0.1:9000"
-          "http://192.168.120.4:9000"
-        )
-        for u in "${candidates[@]}"; do
-          [ -z "$u" ] && continue
-          echo "Trying $u ..."
-          if curl -sS --max-time 5 "$u/api/server/version" >/dev/null 2>&1; then
-            EFFECTIVE_SONAR_URL="$u"
-            break
-          fi
-        done
-      fi
-      if [ -z "$EFFECTIVE_SONAR_URL" ]; then
-        echo "ERROR: No reachable Sonar endpoint found from runner. Set SONAR_HOST_URL to a reachable address or fix runner extra_hosts/firewall."
-        exit 2
-      fi
-      echo "Using Sonar endpoint: $EFFECTIVE_SONAR_URL"
     - echo "Building artifact (skip tests)..."
     - ./gradlew clean build -x test
-    - echo "Running Gradle sonar task (will contact $EFFECTIVE_SONAR_URL)..."
+    - echo "Running Gradle sonar task (will contact $SONAR_HOST_URL)..."
     # Use the newer 'sonar' task when available; fall back to 'sonarqube' if needed.
     - |
       if ./gradlew -q help --task sonar >/dev/null 2>&1; then
-        ./gradlew --no-daemon sonar -Dsonar.host.url="$EFFECTIVE_SONAR_URL" -Dsonar.login="$SONAR_TOKEN"
+        ./gradlew --no-daemon sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
       else
-        ./gradlew --no-daemon sonarqube -Dsonar.host.url="$EFFECTIVE_SONAR_URL" -Dsonar.login="$SONAR_TOKEN"
+        ./gradlew --no-daemon sonarqube -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
       fi
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
