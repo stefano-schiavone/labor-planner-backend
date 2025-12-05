@@ -131,8 +131,7 @@ sonar:
         echo "ERROR: SONAR_TOKEN not set in CI variables. Add it in Settings → CI/CD → Variables (Masked)."
         exit 1
       fi
-      # Build (skip tests for speed) so build/classes/java/main exists
-    # - ./gradlew --no-daemon clean build -x test
+
     - ./gradlew --no-daemon sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
   allow_failure: true
   rules:
