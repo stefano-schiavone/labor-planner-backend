@@ -160,19 +160,25 @@ task integrationTest(type: Test) {
 
 gradle.buildFinished {
     def totalDuration = testSummary.unit.duration + testSummary.integration.duration
-    println "\n┌───────────────────────────────┐"
-    println "│ Combined Test Summary         │"
-    println "├───────────────────────────────┤"
-    println "│ Unit Successes       : ${testSummary.unit.success}"
-    println "│ Unit Failures        : ${testSummary.unit.failed}"
-    println "│ Unit Skipped         : ${testSummary.unit.skipped}"
-    println "│ Unit Duration (s)    : ${String.format('%.2f', testSummary.unit.duration)}"
-    println "│ Integration Success  : ${testSummary.integration.success}"
-    println "│ Integration Failures : ${testSummary.integration.failed}"
-    println "│ Integration Skipped  : ${testSummary.integration.skipped}"
-    println "│ Integration Duration(s): ${String.format('%.2f', testSummary.integration.duration)}"
-    println "│ Total Duration (s)   : ${String.format('%.2f', totalDuration)}"
-    println "└───────────────────────────────┘"
+    def totalTests = testSummary.unit.success + testSummary.unit.failed + testSummary.unit.skipped +
+                     testSummary.integration.success + testSummary.integration.failed + testSummary.integration.skipped
+    if (totalTests > 0) {
+        println "\n┌───────────────────────────────┐"
+        println "│ Combined Test Summary         │"
+        println "├───────────────────────────────┤"
+        println "│ Unit Successes       : ${testSummary.unit.success}"
+        println "│ Unit Failures        : ${testSummary.unit.failed}"
+        println "│ Unit Skipped         : ${testSummary.unit.skipped}"
+        println "│ Unit Duration (s)    : ${String.format('%.2f', testSummary.unit.duration)}"
+        println "│ Integration Success  : ${testSummary.integration.success}"
+        println "│ Integration Failures : ${testSummary.integration.failed}"
+        println "│ Integration Skipped  : ${testSummary.integration.skipped}"
+        println "│ Integration Duration(s): ${String.format('%.2f', testSummary.integration.duration)}"
+        println "│ Total Duration (s)   : ${String.format('%.2f', totalDuration)}"
+        println "└───────────────────────────────┘"
+    } else {
+        println "\nNo tests were executed during this Gradle invocation - skipping combined test summary."
+    }
 }
 
 // For SonarQube tests
@@ -201,7 +207,6 @@ sonarqube {
         property "sonar.qualitygate.wait", true
 
         property "sonar.junit.reportPaths", "build/test-results/test"
-        property "sonar.jacoco.reportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
         property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
 
         // Java binaries location for Sonar
