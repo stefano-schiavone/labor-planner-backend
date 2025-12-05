@@ -2,6 +2,9 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.5'
 	id 'io.spring.dependency-management' version '1.1.7'
+
+   id("org.sonarqube") version "7.1.0.6387"
+   id 'jacoco'
 }
 
 group = 'com.laborplanner'
@@ -54,6 +57,9 @@ dependencies {
    implementation "org.optaplanner:optaplanner-spring-boot-starter"
    testImplementation("org.optaplanner:optaplanner-test")
 
+   // SonarQube
+
+
    // H2 Database
    testImplementation 'com.h2database:h2'
 
@@ -71,6 +77,9 @@ tasks.withType(JavaCompile) {
     options.annotationProcessorPath = configurations.annotationProcessor
     options.compilerArgs += ['-parameters']
 }
+
+
+// Customizing Test output
 
 tasks.named('test') {
 	useJUnitPlatform()
@@ -151,17 +160,56 @@ task integrationTest(type: Test) {
 
 gradle.buildFinished {
     def totalDuration = testSummary.unit.duration + testSummary.integration.duration
-    println "\n┌───────────────────────────────┐"
-    println "│ Combined Test Summary         │"
-    println "├───────────────────────────────┤"
-    println "│ Unit Successes       : ${testSummary.unit.success}"
-    println "│ Unit Failures        : ${testSummary.unit.failed}"
-    println "│ Unit Skipped         : ${testSummary.unit.skipped}"
-    println "│ Unit Duration (s)    : ${String.format('%.2f', testSummary.unit.duration)}"
-    println "│ Integration Success  : ${testSummary.integration.success}"
-    println "│ Integration Failures : ${testSummary.integration.failed}"
-    println "│ Integration Skipped  : ${testSummary.integration.skipped}"
-    println "│ Integration Duration(s): ${String.format('%.2f', testSummary.integration.duration)}"
-    println "│ Total Duration (s)   : ${String.format('%.2f', totalDuration)}"
-    println "└───────────────────────────────┘"
+    def totalTests = testSummary.unit.success + testSummary.unit.failed + testSummary.unit.skipped +
+                     testSummary.integration.success + testSummary.integration.failed + testSummary.integration.skipped
+    if (totalTests > 0) {
+        println "\n┌───────────────────────────────┐"
+        println "│ Combined Test Summary         │"
+        println "├───────────────────────────────┤"
+        println "│ Unit Successes       : ${testSummary.unit.success}"
+        println "│ Unit Failures        : ${testSummary.unit.failed}"
+        println "│ Unit Skipped         : ${testSummary.unit.skipped}"
+        println "│ Unit Duration (s)    : ${String.format('%.2f', testSummary.unit.duration)}"
+        println "│ Integration Success  : ${testSummary.integration.success}"
+        println "│ Integration Failures : ${testSummary.integration.failed}"
+        println "│ Integration Skipped  : ${testSummary.integration.skipped}"
+        println "│ Integration Duration(s): ${String.format('%.2f', testSummary.integration.duration)}"
+        println "│ Total Duration (s)   : ${String.format('%.2f', totalDuration)}"
+        println "└───────────────────────────────┘"
+    } else {
+        println "\nNo tests were executed during this Gradle invocation - skipping combined test summary."
+    }
+}
+
+// For SonarQube tests
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+sonarqube {
+    properties {
+        // set a sensible sonar.projectKey and name for your project
+        property "sonar.projectKey", "I558150_labor-planner-backend_5c2246fe-6e45-4577-ae07-a133c852e12c"
+        property "sonar.projectName", "Labor Planner Backend"
+        property "sonar.qualitygate.wait", true
+
+        property "sonar.junit.reportPaths", "build/test-results/test"
+        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
+
+        // Java binaries location for Sonar
+        property "sonar.java.binaries", "build/classes/java/main"
+    }
 }

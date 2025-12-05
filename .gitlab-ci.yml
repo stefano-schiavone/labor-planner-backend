@@ -19,7 +19,7 @@ stages:
 # Global Variables
 # =========================================================
 variables:
-   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar" 
+   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
    # I keep Gradle cache inside the project so it can be cached by GitLab
    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
@@ -65,6 +65,8 @@ build:
    artifacts:
       paths:
          - build/libs/*.jar # Save the JAR for later stages
+         - build/classes   # Needed for Sonar
+         - build/resources
       expire_in: 1 week
    cache:
       policy: pull-push
@@ -85,14 +87,17 @@ build:
 test:
    stage: test
    image: eclipse-temurin:21-jdk-jammy
+   artifacts:
+    when: always
+    paths:
+      - build/reports/jacoco/**
+      - build/test-results/**
+    reports:
+      junit: build/test-results/test/TEST-*.xml
    variables:
       SPRING_PROFILES_ACTIVE: test
    script:
-      - ./gradlew test
-   artifacts:
-      when: always
-      reports:
-         junit: build/test-results/test/TEST-*.xml
+      - ./gradlew test jacocoTestReport
    rules:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
         when: always
@@ -102,73 +107,40 @@ test:
         when: always
 
 # =========================================================
-# Staging Stage
+# Sonar Stage
 # =========================================================
-sonarcloud-check:
+sonar:
   stage: sonar
-  image:
-    # Using this because it's more lightweight
-    name: sonarsource/sonar-scanner-cli:latest
-    entrypoint: [""]
-  variables:
-    SONAR_PROJECT_KEY: "my-java-springboot-project"
-    SONAR_PROJECT_NAME: "My Java Spring Boot Project"
-    SONAR_ORGANIZATION: "trainmefordevsecops"
-    SONAR_SCANNER_OPTS: "-Xmx1024m"
+  image: gradle:8.14.3-jdk21-jammy
+  needs:
+    - job: build
+      artifacts: true
+    - job: test
+      artifacts: true
+  cache:
+    policy: pull-push
+    key: "sonar-cache-$CI_COMMIT_REF_SLUG"
+    paths:
+      - "${SONAR_USER_HOME}/cache"
+      - sonar-scanner/
   script:
-    # 1. Build the project with Gradle
-    # Since I'm using sonar-scanner-cli image I have to first build
-    - ./gradlew clean build
+    - echo "Starting Sonar analysis (external Sonar at $SONAR_HOST_URL)"
+    - chmod +x gradlew
+    - |
+      if [ -z "$SONAR_TOKEN" ]; then
+        echo "ERROR: SONAR_TOKEN not set in CI variables. Add it in Settings → CI/CD → Variables (Masked)."
+        exit 1
+      fi
 
-    # 2. Run SonarScanner CLI
-    - sonar-scanner \
-        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-        -Dsonar.organization=$SONAR_ORGANIZATION \
-        -Dsonar.projectName="$SONAR_PROJECT_NAME" \
-        -Dsonar.sources=src/main/java \
-        -Dsonar.java.binaries=build/classes/java/main \
-        -Dsonar.host.url=https://sonarcloud.io \
-        -Dsonar.login=$SONAR_TOKEN
+    - ./gradlew --no-daemon sonar -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.token="$SONAR_TOKEN"
   allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
     - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
       when: always
-
-# =========================================================
-# Staging Stage
-# =========================================================
-# I want this stage to run in its own container with PostgreSQL
-# Each staging container is isolated from other stages (industry best practice)
-staging:
-   stage: staging
-   image: gradle:8.14.3-jdk21-jammy
-   services:
-      - name: postgres:15.14-alpine3.22
-        alias: postgres-staging
-        variables:
-           POSTGRES_DB: stagingdb
-           POSTGRES_USER: staging
-           POSTGRES_PASSWORD: staging
-           POSTGRES_HOST_AUTH_METHOD: scram-sha-256
-   variables:
-      SPRING_PROFILES_ACTIVE: staging
-      DB_HOST: postgres-staging
-      DB_PORT: 5432
-      POSTGRES_DB: stagingdb
-      POSTGRES_USER: staging
-      POSTGRES_PASSWORD: staging
-   script:
-      - ./gradlew bootRun &
-      - APP_PID=$!
-      - echo "Waiting 15 seconds to ensure app connects to PostgreSQL..."
-      - sleep 15
-      - echo "Stopping app process"
-      - kill $APP_PID
-   rules:
-      - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-        when: always # only on MRs
 
 # =========================================================
 # Package Stage
@@ -189,8 +161,6 @@ package:
         when: always
       - if: '$CI_COMMIT_BRANCH == "main"'
         when: always
-      - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-        when: on_success
 
 # =========================================================
 # Docker Image Stage
@@ -223,24 +193,22 @@ docker-build-push:
         when: always
       - if: '$CI_COMMIT_BRANCH == "main"'
         when: always
-      - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-        when: always
 
 # =========================================================
 # Deploy to Production Server
 # =========================================================
 # This connects via SSH and runs the latest Docker image
-deploy-production: 
-   stage: 
-      deploy-production 
-   image: 
-      alpine:latest 
-   before_script: 
-      - apk add --no-cache openssh-client bash 
-      - mkdir -p ~/.ssh 
-      - echo "$PROD_KNOWN_HOSTS" > ~/.ssh/known_hosts 
-      - echo "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519 
-      - chmod 600 ~/.ssh/id_ed25519 
+deploy-production:
+   stage:
+      deploy-production
+   image:
+      alpine:latest
+   before_script:
+      - apk add --no-cache openssh-client bash
+      - mkdir -p ~/.ssh
+      - echo "$PROD_KNOWN_HOSTS" > ~/.ssh/known_hosts
+      - echo "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+      - chmod 600 ~/.ssh/id_ed25519
     # This way of writing the command is used because it needs to support multi lines and otherwise the env variables give problems
    script:
     - |
@@ -255,9 +223,9 @@ deploy-production:
            --env PROD_DB_USER='$PROD_DB_USER' \
            --env PROD_DB_PASSWORD='$PROD_DB_PASSWORD' \
            $PROD_SSH_HOST:5000/labor-planner-backend:$IMAGE_TAG"
-   environment: 
-      name: production 
-      url: "http://$PROD_SSH_HOST:8080" 
-   rules: 
-      - if: '$CI_COMMIT_BRANCH == "main"' 
+   environment:
+      name: production
+      url: "http://$PROD_SSH_HOST:8080"
+   rules:
+      - if: '$CI_COMMIT_BRANCH == "main"'
    when: manual # manual trigger only on main
