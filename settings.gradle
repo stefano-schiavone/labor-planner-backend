@@ -1,1 +1,11 @@
+pluginManagement {
+    repositories {
+        // primary plugin repository
+        gradlePluginPortal()
+        // fallback: plugin artifacts can also be on Maven Central
+        mavenCentral()
+        // local/company artifact repo if you have one, e.g.:
+        // maven { url "https://your.company.repo/maven2" }
+    }
+}
 rootProject.name = 'backend'
