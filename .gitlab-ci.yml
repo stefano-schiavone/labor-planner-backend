@@ -161,8 +161,6 @@ package:
         when: always
       - if: '$CI_COMMIT_BRANCH == "main"'
         when: always
-      - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
-        when: on_success
 
 # =========================================================
 # Docker Image Stage
@@ -194,8 +192,6 @@ docker-build-push:
       - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
         when: always
       - if: '$CI_COMMIT_BRANCH == "main"'
-        when: always
-      - if: '$CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "main"'
         when: always
 
 # =========================================================
