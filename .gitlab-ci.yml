@@ -217,7 +217,7 @@ deploy-production:
          if docker ps -a --filter 'name=app-prod' --format '{{.ID}}' | grep -q .; then \
            docker stop app-prod && docker rm -f app-prod; \
          fi && \
-         docker run -d --name app-prod -p 8080:8080 \
+         docker run -d --name app-prod --network app-network  -p 8080:8080 \
            --env SPRING_PROFILES_ACTIVE=prod \
            --env PROD_DB_URL='$PROD_DB_URL' \
            --env PROD_DB_USER='$PROD_DB_USER' \
