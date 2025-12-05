@@ -14,40 +14,37 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class AccountTypeRepository
-    extends BaseRepository<AccountTypeEntity, AccountType, AccountTypeMapper>
-    implements AccountTypeRepositoryCustom {
+      extends BaseRepository<AccountTypeEntity, AccountType, AccountTypeMapper>
+      implements AccountTypeRepositoryCustom {
 
-  @PersistenceContext private EntityManager em;
+   @PersistenceContext
+   private EntityManager em;
 
-  private final AccountTypeMapper mapper = AccountTypeMapper.INSTANCE;
+   public AccountTypeRepository(AccountTypeMapper mapper) {
+      super(AccountTypeEntity.class, mapper);
+   }
 
-  public AccountTypeRepository() {
-    super(AccountTypeEntity.class, AccountTypeMapper.INSTANCE);
-  }
-
-  @Override
-  public Optional<AccountType> findByName(String name) {
-    TypedQuery<AccountTypeEntity> query =
-        em.createQuery(
+   @Override
+   public Optional<AccountType> findByName(String name) {
+      TypedQuery<AccountTypeEntity> query = em.createQuery(
             "SELECT a FROM AccountTypeEntity a WHERE a.name = :name", AccountTypeEntity.class);
-    query.setParameter("name", name);
-    return query.getResultStream().findFirst().map(mapper::toModel);
-  }
+      query.setParameter("name", name);
+      return query.getResultStream().findFirst().map(mapper::toModel);
+   }
 
-  @Override
-  public boolean existsByName(String name) {
-    TypedQuery<Long> query =
-        em.createQuery("SELECT COUNT(a) FROM AccountTypeEntity a WHERE a.name = :name", Long.class);
-    query.setParameter("name", name);
-    Long count = query.getSingleResult();
-    return count != null && count > 0;
-  }
+   @Override
+   public boolean existsByName(String name) {
+      TypedQuery<Long> query = em.createQuery("SELECT COUNT(a) FROM AccountTypeEntity a WHERE a.name = :name",
+            Long.class);
+      query.setParameter("name", name);
+      Long count = query.getSingleResult();
+      return count != null && count > 0;
+   }
 
-  @Override
-  public List<AccountType> findAllByOrderByNameAsc() {
-    TypedQuery<AccountTypeEntity> query =
-        em.createQuery(
+   @Override
+   public List<AccountType> findAllByOrderByNameAsc() {
+      TypedQuery<AccountTypeEntity> query = em.createQuery(
             "SELECT a FROM AccountTypeEntity a ORDER BY a.name ASC", AccountTypeEntity.class);
-    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
-  }
+      return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+   }
 }
