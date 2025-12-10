@@ -89,7 +89,7 @@ public class JobController {
             req.getTemplateUuid(),
             req.getName(),
             req.getDescription(),
-            req.getDuration(),
+            req.getDurationAsDuration(),
             req.getDeadline(),
             req.getRequiredMachineTypeUuid());
    }

@@ -13,41 +13,37 @@ import lombok.Setter;
 @AllArgsConstructor
 public class JobDto {
 
-  private String jobUuid;
+   private String jobUuid;
 
-  private String templateUuid;
+   private String templateUuid;
 
-  @NotBlank private String name;
+   @NotBlank
+   private String name;
 
-  @NotBlank private String description;
+   @NotBlank
+   private String description;
 
-  @NotNull private Duration duration;
+   @NotNull
+   private Duration duration;
 
-  @NotNull private LocalDateTime deadline;
+   @NotNull
+   private LocalDateTime deadline;
 
-  @NotBlank private String requiredMachineTypeUuid;
+   @NotBlank
+   private String requiredMachineTypeUuid;
 
-  public JobDto(
-      String name,
-      String description,
-      Duration duration,
-      LocalDateTime deadline,
-      String requiredMachineTypeUuid) {
-    this.name = name;
-  }
-
-  public JobDto(
-      String templateUuid,
-      String name,
-      String description,
-      Duration duration,
-      LocalDateTime deadline,
-      String requiredMachineTypeUuid) {
-    this.templateUuid = templateUuid;
-    this.name = name;
-    this.description = description;
-    this.duration = duration;
-    this.deadline = deadline;
-    this.requiredMachineTypeUuid = requiredMachineTypeUuid;
-  }
+   public JobDto(
+         String templateUuid,
+         String name,
+         String description,
+         Duration duration,
+         LocalDateTime deadline,
+         String requiredMachineTypeUuid) {
+      this.templateUuid = templateUuid;
+      this.name = name;
+      this.description = description;
+      this.duration = duration;
+      this.deadline = deadline;
+      this.requiredMachineTypeUuid = requiredMachineTypeUuid;
+   }
 }
