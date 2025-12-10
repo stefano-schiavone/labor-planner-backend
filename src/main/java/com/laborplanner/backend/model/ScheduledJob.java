@@ -46,10 +46,10 @@ public class ScheduledJob {
 
    // Helper: compute how many time grains this job occupies (round up)
    public int getDurationInGrains() {
-      if (job == null || job.getDuration() == null) {
+      if (job == null || job.getDurationMinutes() == null) {
          return 1;
       }
-      long minutes = job.getDuration().toMinutes();
+      long minutes = job.getDurationMinutes();
       int grainSize = TimeGrain.GRAIN_LENGTH_IN_MINUTES;
       int grains = (int) ((minutes + grainSize - 1) / grainSize);
       return Math.max(1, grains);

@@ -24,10 +24,6 @@ public class JobController {
       this.jobService = jobService;
    }
 
-   // -------------------------------------------------------
-   // CRUD Endpoints
-   // -------------------------------------------------------
-
    @Operation(summary = "Get all jobs")
    @GetMapping
    public List<JobResponse> getAllJobs() {
@@ -45,7 +41,6 @@ public class JobController {
    public ResponseEntity<JobResponse> createJob(@RequestBody @Valid JobRequest request) {
       JobDto dto = toDto(request);
 
-      // service returns JobDto
       JobDto created = jobService.createJob(dto);
 
       JobResponse response = toResponse(created);
@@ -74,12 +69,14 @@ public class JobController {
    // -------------------------------------------------------
 
    private JobResponse toResponse(JobDto dto) {
+      // now dto exposes minutes directly
+      Integer durationMinutes = dto.getDurationMinutes();
       return new JobResponse(
             dto.getJobUuid(),
             dto.getTemplateUuid(),
             dto.getName(),
             dto.getDescription(),
-            dto.getDuration(),
+            durationMinutes,
             dto.getDeadline(),
             dto.getRequiredMachineTypeUuid());
    }
@@ -89,7 +86,7 @@ public class JobController {
             req.getTemplateUuid(),
             req.getName(),
             req.getDescription(),
-            req.getDurationAsDuration(),
+            req.getDurationMinutes(),
             req.getDeadline(),
             req.getRequiredMachineTypeUuid());
    }

@@ -20,146 +20,139 @@ import org.springframework.stereotype.Service;
 @Service
 public class JobService implements IJobService {
 
-  private final JobRepository jobRepository;
-  private final IMachineTypeReadService machineTypeService;
-  private final IJobTemplateReadService jobTemplateService;
+   private final JobRepository jobRepository;
+   private final IMachineTypeReadService machineTypeService;
+   private final IJobTemplateReadService jobTemplateService;
 
-  public JobService(
-      JobRepository jobRepository,
-      IMachineTypeReadService machineTypeService,
-      IJobTemplateReadService jobTemplateService) {
-    this.jobRepository = jobRepository;
-    this.machineTypeService = machineTypeService;
-    this.jobTemplateService = jobTemplateService;
-  }
+   public JobService(
+         JobRepository jobRepository,
+         IMachineTypeReadService machineTypeService,
+         IJobTemplateReadService jobTemplateService) {
+      this.jobRepository = jobRepository;
+      this.machineTypeService = machineTypeService;
+      this.jobTemplateService = jobTemplateService;
+   }
 
-  // -------------------------------------------------------
-  // IJobService Implementation
-  // -------------------------------------------------------
+   @Override
+   public List<JobDto> getAllJobs() {
+      return jobRepository.findAllByOrderByDeadlineAsc().stream().map(this::toDto).toList();
+   }
 
-  @Override
-  public List<JobDto> getAllJobs() {
-    return jobRepository.findAllByOrderByDeadlineAsc().stream().map(this::toDto).toList();
-  }
-
-  @Override
-  public JobDto getJobByUuid(String uuid) {
-    Job job =
-        jobRepository
+   @Override
+   public JobDto getJobByUuid(String uuid) {
+      Job job = jobRepository
             .findByUuid(uuid)
             .orElseThrow(
-                () -> {
-                  log.warn("Job not found: {}", uuid);
-                  return new JobNotFoundException(uuid);
-                });
+                  () -> {
+                     log.warn("Job not found: {}", uuid);
+                     return new JobNotFoundException(uuid);
+                  });
 
-    return toDto(job);
-  }
+      return toDto(job);
+   }
 
-  @Override
-  public JobDto createJob(JobDto dto) {
-    log.info("Creating job: name='{}'", dto.getName());
+   @Override
+   public JobDto createJob(JobDto dto) {
+      log.info("Creating job: name='{}'", dto.getName());
 
-    if (jobRepository.existsByName(dto.getName())) {
-      log.warn("Duplicate job name attempted: {}", dto.getName());
-      throw new DuplicateJobNameException(dto.getName());
-    }
+      if (jobRepository.existsByName(dto.getName())) {
+         log.warn("Duplicate job name attempted: {}", dto.getName());
+         throw new DuplicateJobNameException(dto.getName());
+      }
 
-    MachineType requiredType = machineTypeService.getTypeByUuid(dto.getRequiredMachineTypeUuid());
+      MachineType requiredType = machineTypeService.getTypeByUuid(dto.getRequiredMachineTypeUuid());
 
-    JobTemplate template = null;
-    if (dto.getTemplateUuid() != null) {
-      template = jobTemplateService.getJobTemplateByUuid(dto.getTemplateUuid());
-    }
+      JobTemplate template = null;
+      if (dto.getTemplateUuid() != null) {
+         template = jobTemplateService.getJobTemplateByUuid(dto.getTemplateUuid());
+      }
 
-    Job model = toModel(dto, template, requiredType);
-    Job created = jobRepository.create(model);
+      Job model = toModel(dto, template, requiredType);
+      Job created = jobRepository.create(model);
 
-    log.info("Job created successfully: uuid='{}'", created.getJobUuid());
-    return toDto(created);
-  }
+      log.info("Job created successfully: uuid='{}'", created.getJobUuid());
+      return toDto(created);
+   }
 
-  @Override
-  public JobDto updateJob(String uuid, JobDto dto) {
-    Job existing =
-        jobRepository
+   @Override
+   public JobDto updateJob(String uuid, JobDto dto) {
+      Job existing = jobRepository
             .findByUuid(uuid)
             .orElseThrow(
-                () -> {
-                  log.warn("Job not found for update: uuid='{}'", uuid);
-                  return new JobNotFoundException(uuid);
-                });
+                  () -> {
+                     log.warn("Job not found for update: uuid='{}'", uuid);
+                     return new JobNotFoundException(uuid);
+                  });
 
-    // Name uniqueness check if changed
-    if (!existing.getName().equals(dto.getName()) && jobRepository.existsByName(dto.getName())) {
-      log.warn("Duplicate job name attempted during update: {}", dto.getName());
-      throw new DuplicateJobNameException(dto.getName());
-    }
+      // Name uniqueness check if changed
+      if (!existing.getName().equals(dto.getName()) && jobRepository.existsByName(dto.getName())) {
+         log.warn("Duplicate job name attempted during update: {}", dto.getName());
+         throw new DuplicateJobNameException(dto.getName());
+      }
 
-    MachineType requiredType = machineTypeService.getTypeByUuid(dto.getRequiredMachineTypeUuid());
+      MachineType requiredType = machineTypeService.getTypeByUuid(dto.getRequiredMachineTypeUuid());
 
-    JobTemplate template = null;
-    if (dto.getTemplateUuid() != null) {
-      template = jobTemplateService.getJobTemplateByUuid(dto.getTemplateUuid());
-    }
+      JobTemplate template = null;
+      if (dto.getTemplateUuid() != null) {
+         template = jobTemplateService.getJobTemplateByUuid(dto.getTemplateUuid());
+      }
 
-    // Apply updates
-    existing.setName(dto.getName());
-    existing.setDescription(dto.getDescription());
-    existing.setDuration(dto.getDuration());
-    existing.setDeadline(dto.getDeadline());
-    existing.setRequiredMachineType(requiredType);
-    existing.setTemplate(template);
+      // Apply updates
+      existing.setName(dto.getName());
+      existing.setDescription(dto.getDescription());
+      existing.setDurationMinutes(dto.getDurationMinutes());
+      existing.setDeadline(dto.getDeadline());
+      existing.setRequiredMachineType(requiredType);
+      existing.setTemplate(template);
 
-    Job saved = jobRepository.update(existing);
+      Job saved = jobRepository.update(existing);
 
-    log.info("Job updated successfully: uuid='{}'", saved.getJobUuid());
-    return toDto(saved);
-  }
+      log.info("Job updated successfully: uuid='{}'", saved.getJobUuid());
+      return toDto(saved);
+   }
 
-  @Override
-  public void deleteJob(String uuid) {
-    if (!jobRepository.existsByUuid(uuid)) {
-      throw new JobNotFoundException(uuid);
-    }
-    jobRepository.deleteByUuid(uuid);
-    log.info("Deleted job: uuid='{}'", uuid);
-  }
+   @Override
+   public void deleteJob(String uuid) {
+      if (!jobRepository.existsByUuid(uuid)) {
+         throw new JobNotFoundException(uuid);
+      }
+      jobRepository.deleteByUuid(uuid);
+      log.info("Deleted job: uuid='{}'", uuid);
+   }
 
-  @Override
-  public List<JobDto> findByRequiredMachineType(MachineType type) {
-    return jobRepository.findByRequiredMachineType(type).stream().map(this::toDto).toList();
-  }
+   @Override
+   public List<JobDto> findByRequiredMachineType(MachineType type) {
+      return jobRepository.findByRequiredMachineType(type).stream().map(this::toDto).toList();
+   }
 
-  // -------------------------------------------------------
-  // Mapping Helpers
-  // -------------------------------------------------------
+   // -------------------------------------------------------
+   // Mapping Helpers
+   // -------------------------------------------------------
 
-  private Job toModel(JobDto dto, JobTemplate template, MachineType requiredType) {
-    Job job =
-        new Job(
+   private Job toModel(JobDto dto, JobTemplate template, MachineType requiredType) {
+      Job job = new Job(
+            dto.getJobUuid(),
             dto.getName(),
             dto.getDescription(),
-            dto.getDuration(),
+            dto.getDurationMinutes(),
             dto.getDeadline(),
             requiredType,
             template);
 
-    job.setTemplate(template);
-    return job;
-  }
+      job.setTemplate(template);
+      return job;
+   }
 
-  private JobDto toDto(Job model) {
-    String templateUuid =
-        model.getTemplate() != null ? model.getTemplate().getJobTemplateUuid() : null;
+   private JobDto toDto(Job model) {
+      String templateUuid = model.getTemplate() != null ? model.getTemplate().getJobTemplateUuid() : null;
 
-    return new JobDto(
-        model.getJobUuid(),
-        templateUuid,
-        model.getName(),
-        model.getDescription(),
-        model.getDuration(),
-        model.getDeadline(),
-        model.getRequiredMachineType().getMachineTypeUuid());
-  }
+      return new JobDto(
+            model.getJobUuid(),
+            templateUuid,
+            model.getName(),
+            model.getDescription(),
+            model.getDurationMinutes(),
+            model.getDeadline(),
+            model.getRequiredMachineType().getMachineTypeUuid());
+   }
 }
