@@ -1,7 +1,6 @@
 package com.laborplanner.backend.dto.job;
 
 import jakarta.validation.constraints.NotBlank;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,17 +10,21 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public class JobResponse {
-  private String jobUuid;
+   private String jobUuid;
 
-  private String templateUuid;
+   private String templateUuid;
 
-  @NotBlank private String name;
+   @NotBlank
+   private String name;
 
-  @NotBlank private String description;
+   @NotBlank
+   private String description;
 
-  @NotBlank private Duration duration;
+   // expose minutes as integer for the API/UI
+   private Integer durationMinutes;
 
-  @NotBlank private LocalDateTime deadline;
+   private LocalDateTime deadline;
 
-  @NotBlank private String requiredMachineTypeUuid;
+   @NotBlank
+   private String requiredMachineTypeUuid;
 }

@@ -1,7 +1,6 @@
 package com.laborplanner.backend.repository.entity;
 
 import jakarta.persistence.*;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,37 +15,37 @@ import lombok.*;
 @NoArgsConstructor // Required by JPA
 public class JobEntity {
 
-  // Fields
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  @Column(name = "job_uuid", nullable = false, updatable = false)
-  private UUID jobUuid;
+   // Fields
+   @Id
+   @GeneratedValue(strategy = GenerationType.AUTO)
+   @Column(name = "job_uuid", nullable = false, updatable = false)
+   private UUID jobUuid;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "job_template_uuid")
-  private JobTemplateEntity template;
+   @ManyToOne(fetch = FetchType.LAZY)
+   @JoinColumn(name = "job_template_uuid")
+   private JobTemplateEntity template;
 
-  @Column(name = "name", nullable = false)
-  private String name;
+   @Column(name = "name", nullable = false)
+   private String name;
 
-  @Column(name = "description")
-  private String description;
+   @Column(name = "description")
+   private String description;
 
-  @Column(name = "duration", nullable = false)
-  private Duration duration;
+   @Column(name = "duration", nullable = false)
+   private Integer duration;
 
-  @Column(name = "deadline")
-  private LocalDateTime deadline;
+   @Column(name = "deadline")
+   private LocalDateTime deadline;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "required_machine_type_uuid")
-  private MachineTypeEntity requiredMachineType;
+   @ManyToOne(fetch = FetchType.LAZY)
+   @JoinColumn(name = "required_machine_type_uuid")
+   private MachineTypeEntity requiredMachineType;
 
-  // Self-referencing many-to-many for dependencies
-  @ManyToMany
-  @JoinTable(
-      name = "job_dependencies",
-      joinColumns = @JoinColumn(name = "job_uuid"),
-      inverseJoinColumns = @JoinColumn(name = "dependency_uuid"))
-  private List<JobEntity> dependencies = new ArrayList<>();
+   // Self-referencing many-to-many for dependencies
+   @ManyToMany
+   @JoinTable(name = "job_dependencies", joinColumns = @JoinColumn(name = "job_uuid"), inverseJoinColumns = @JoinColumn(name = "dependency_uuid"))
+   private List<JobEntity> dependencies = new ArrayList<>();
 }
+
+// ALTER TABLE job
+// ALTER COLUMN duration TYPE integer USING duration::integer;

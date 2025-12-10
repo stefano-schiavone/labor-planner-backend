@@ -1,15 +1,17 @@
 package com.laborplanner.backend.model;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.*;
 
+/**
+ * Domain model for Job. Duration is stored as whole minutes (durationMinutes).
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,8 +27,12 @@ public class Job {
 
    private String description;
 
-   @JsonFormat(shape = JsonFormat.Shape.NUMBER, pattern = "MINUTES")
-   private Duration duration;
+   /**
+    * Duration in whole minutes.
+    * Serializes as a number in JSON (no special string format).
+    */
+   @JsonAlias({ "duration", "durationMinutes" })
+   private Integer durationMinutes;
 
    private LocalDateTime deadline;
 
@@ -39,21 +45,43 @@ public class Job {
    private List<Job> dependencies = new ArrayList<>();
 
    // Constructors
-   // Constructor with all arguments except UUID
+
+   /**
+    * Constructor used by service when creating a Job model from DTOs.
+    */
    public Job(
          String name,
          String description,
-         Duration duration,
+         Integer durationMinutes,
          LocalDateTime deadline,
          MachineType requiredMachineType,
          JobTemplate template) {
       this.name = name;
       this.description = description;
-      this.duration = duration;
+      this.durationMinutes = durationMinutes;
       this.deadline = deadline;
       this.requiredMachineType = requiredMachineType;
       this.requiredMachineTypeUuid = requiredMachineType != null ? requiredMachineType.getMachineTypeUuid() : null;
       this.template = template;
+   }
+
+   public Job(
+         String uuid,
+         String name,
+         String description,
+         Integer durationMinutes,
+         LocalDateTime deadline,
+         MachineType requiredMachineType,
+         JobTemplate template) {
+
+      this.jobUuid = uuid;
+      this.template = template;
+      this.name = name;
+      this.description = description;
+      this.durationMinutes = durationMinutes;
+      this.deadline = deadline;
+      this.requiredMachineType = requiredMachineType;
+      this.requiredMachineTypeUuid = requiredMachineType != null ? requiredMachineType.getMachineTypeUuid() : null;
    }
 
    // Delegating constructor to allow Jackson to deserialize a single string as a
