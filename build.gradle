@@ -57,8 +57,8 @@ dependencies {
    implementation "org.optaplanner:optaplanner-spring-boot-starter"
    testImplementation("org.optaplanner:optaplanner-test")
 
-   // SonarQube
-
+   // Serializing Duration
+implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
    // H2 Database
    testImplementation 'com.h2database:h2'
