@@ -16,64 +16,60 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class ScheduleRepository extends BaseRepository<ScheduleEntity, Schedule, ScheduleMapper>
-    implements ScheduleRepositoryCustom {
+      implements ScheduleRepositoryCustom {
 
-  @PersistenceContext private EntityManager em;
+   @PersistenceContext
+   private EntityManager em;
 
-  public ScheduleRepository(ScheduleMapper mapper) {
-    super(ScheduleEntity.class, mapper);
-  }
+   public ScheduleRepository(ScheduleMapper mapper) {
+      super(ScheduleEntity.class, mapper);
+   }
 
-  @Override
-  public List<Schedule> findByCreatedByUser(User user) {
-    TypedQuery<ScheduleEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
+   @Override
+   public List<Schedule> findByCreatedByUser(User user) {
+      TypedQuery<ScheduleEntity> query = em.createQuery(
+            "SELECT s FROM ScheduleEntity s WHERE s.createdByUser = :user",
             ScheduleEntity.class);
-    query.setParameter("user", user);
-    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
-  }
+      query.setParameter("user", user);
+      return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+   }
 
-  @Override
-  public Optional<Schedule> findByWeekStartDate(LocalDateTime weekStartDate) {
-    TypedQuery<ScheduleEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
+   @Override
+   public Optional<Schedule> findByWeekStartDate(LocalDateTime weekStartDate) {
+      TypedQuery<ScheduleEntity> query = em.createQuery(
+            "SELECT s FROM ScheduleEntity s WHERE s.weekStartDate = :weekStartDate",
             ScheduleEntity.class);
-    query.setParameter("weekStartDate", weekStartDate);
-    return query.getResultStream().findFirst().map(mapper::toModel);
-  }
+      query.setParameter("weekStartDate", weekStartDate);
+      return query.getResultStream().findFirst().map(mapper::toModel);
+   }
 
-  @Override
-  public boolean existsByWeekStartDate(LocalDateTime weekStartDate) {
-    TypedQuery<Long> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
+   @Override
+   public boolean existsByWeekStartDate(LocalDateTime weekStartDate) {
+      TypedQuery<Long> query = em.createQuery(
+            "SELECT COUNT(s) FROM ScheduleEntity s WHERE s.weekStartDate = :weekStartDate",
             Long.class);
-    query.setParameter("weekStartDate", weekStartDate);
-    Long count = query.getSingleResult();
-    return count != null && count > 0;
-  }
+      query.setParameter("weekStartDate", weekStartDate);
+      Long count = query.getSingleResult();
+      return count != null && count > 0;
+   }
 
-  @Override
-  public List<Schedule> findByWeekStartDateBetween(LocalDateTime start, LocalDateTime end) {
-    TypedQuery<ScheduleEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
+   @Override
+   public List<Schedule> findByWeekStartDateBetween(LocalDateTime start, LocalDateTime end) {
+      TypedQuery<ScheduleEntity> query = em.createQuery(
+            "SELECT s FROM ScheduleEntity s WHERE s.weekStartDate BETWEEN :start AND :end",
             ScheduleEntity.class);
-    query.setParameter("start", start);
-    query.setParameter("end", end);
-    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
-  }
+      query.setParameter("start", start);
+      query.setParameter("end", end);
+      return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+   }
 
-  @Override
-  public Optional<Schedule> findFirstByCreatedByUserOrderByLastModifiedDateDesc(User user) {
-    TypedQuery<ScheduleEntity> query =
-        em.createQuery(
-            "", // <-- SQL/HQL query goes here
+   @Override
+   public Optional<Schedule> findFirstByCreatedByUserOrderByLastModifiedDateDesc(User user) {
+      TypedQuery<ScheduleEntity> query = em.createQuery(
+            "SELECT s FROM ScheduleEntity s WHERE s.createdByUser = :user ORDER BY s.lastModifiedDate DESC",
             ScheduleEntity.class);
-    query.setParameter("user", user);
-    query.setMaxResults(1); // get only the latest modified
-    return query.getResultStream().findFirst().map(mapper::toModel);
-  }
+      query.setParameter("user", user);
+      query.setMaxResults(1);
+      return query.getResultStream().findFirst().map(mapper::toModel);
+   }
 }

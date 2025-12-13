@@ -4,18 +4,13 @@ import com.laborplanner.backend.model.User;
 import com.laborplanner.backend.repository.entity.UserEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.factory.Mappers;
 
-@Mapper(
-    componentModel = "spring",
-    uses = {AccountTypeMapper.class})
+@Mapper(componentModel = "spring", uses = { AccountTypeMapper.class })
 public interface UserMapper extends BaseMapper<User, UserEntity> {
 
-  UserMapper INSTANCE = Mappers.getMapper(UserMapper.class);
+   @Mapping(source = "type", target = "type")
+   User toModel(UserEntity entity);
 
-  @Mapping(source = "type", target = "type")
-  User toModel(UserEntity entity);
-
-  @Mapping(source = "type", target = "type")
-  UserEntity toEntity(User model);
+   @Mapping(source = "type", target = "type")
+   UserEntity toEntity(User model);
 }
