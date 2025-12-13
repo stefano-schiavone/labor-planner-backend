@@ -41,6 +41,12 @@ public class Job {
    // UUID only for JSON deserialization
    private String requiredMachineTypeUuid;
 
+   // Overrride Lombok setter to populate uuid
+   public void setRequiredMachineType(MachineType requiredMachineType) {
+      this.requiredMachineType = requiredMachineType;
+      this.requiredMachineTypeUuid = requiredMachineType.getMachineTypeUuid();
+   }
+
    // Self-referencing many-to-many for dependencies
    private List<Job> dependencies = new ArrayList<>();
 

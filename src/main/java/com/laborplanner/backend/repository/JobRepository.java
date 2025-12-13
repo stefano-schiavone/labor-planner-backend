@@ -17,79 +17,84 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class JobRepository extends BaseRepository<JobEntity, Job, JobMapper>
-    implements JobRepositoryCustom {
+      implements JobRepositoryCustom {
 
-  @PersistenceContext private EntityManager em;
+   @PersistenceContext
+   private EntityManager em;
 
-  public JobRepository(JobMapper mapper) {
-    super(JobEntity.class, mapper);
-  }
+   public JobRepository(JobMapper mapper) {
+      super(JobEntity.class, mapper);
+   }
 
-  @Override
-  public Optional<Job> findByName(String name) {
-    TypedQuery<JobEntity> query =
-        em.createQuery("SELECT j FROM JobEntity j WHERE j.name = :name", JobEntity.class);
-    query.setParameter("name", name);
-    return query.getResultStream().findFirst().map(mapper::toModel);
-  }
+   @Override
+   public Optional<Job> findByName(String name) {
+      TypedQuery<JobEntity> query = em.createQuery("SELECT j FROM JobEntity j WHERE j.name = :name", JobEntity.class);
+      query.setParameter("name", name);
+      return query.getResultStream().findFirst().map(mapper::toModel);
+   }
 
-  @Override
-  public boolean existsByName(String name) {
-    TypedQuery<Long> query =
-        em.createQuery("SELECT COUNT(j) FROM JobEntity j WHERE j.name = :name", Long.class);
-    query.setParameter("name", name);
-    Long count = query.getSingleResult();
-    return count != null && count > 0;
-  }
+   @Override
+   public boolean existsByName(String name) {
+      TypedQuery<Long> query = em.createQuery("SELECT COUNT(j) FROM JobEntity j WHERE j.name = :name", Long.class);
+      query.setParameter("name", name);
+      Long count = query.getSingleResult();
+      return count != null && count > 0;
+   }
 
-  @Override
-  public List<Job> findByTemplate(JobTemplate template) {
-    // Assuming JobTemplateEntity is linked through job_template_uuid
-    TypedQuery<JobEntity> query =
-        em.createQuery(
+   @Override
+   public List<Job> findByTemplate(JobTemplate template) {
+      // Assuming JobTemplateEntity is linked through job_template_uuid
+      TypedQuery<JobEntity> query = em.createQuery(
             "SELECT j FROM JobEntity j WHERE j.template.templateUuid = :templateUuid",
             JobEntity.class);
-    query.setParameter("templateUuid", template.getJobTemplateUuid());
-    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
-  }
+      query.setParameter("templateUuid", template.getJobTemplateUuid());
+      return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+   }
 
-  @Override
-  public List<Job> findByRequiredMachineType(MachineType machineType) {
-    // Assuming MachineTypeEntity is linked through required_machine_type_uuid
-    TypedQuery<JobEntity> query =
-        em.createQuery(
+   @Override
+   public List<Job> findByRequiredMachineType(MachineType machineType) {
+      // Assuming MachineTypeEntity is linked through required_machine_type_uuid
+      TypedQuery<JobEntity> query = em.createQuery(
             "SELECT j FROM JobEntity j WHERE j.requiredMachineType.machineTypeUuid ="
-                + " :machineTypeUuid",
+                  + " :machineTypeUuid",
             JobEntity.class);
-    query.setParameter("machineTypeUuid", machineType.getMachineTypeUuid());
-    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
-  }
+      query.setParameter("machineTypeUuid", machineType.getMachineTypeUuid());
+      return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+   }
 
-  @Override
-  public List<Job> findByDeadlineBefore(LocalDateTime deadline) {
-    TypedQuery<JobEntity> query =
-        em.createQuery(
+   @Override
+   public List<Job> findByDeadlineBefore(LocalDateTime deadline) {
+      TypedQuery<JobEntity> query = em.createQuery(
             "SELECT j FROM JobEntity j WHERE j.deadline < :deadline ORDER BY j.deadline ASC",
             JobEntity.class);
-    query.setParameter("deadline", deadline);
-    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
-  }
+      query.setParameter("deadline", deadline);
+      return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+   }
 
-  @Override
-  public List<Job> findByDeadlineAfter(LocalDateTime deadline) {
-    TypedQuery<JobEntity> query =
-        em.createQuery(
+   @Override
+   public List<Job> findByDeadlineAfter(LocalDateTime deadline) {
+      TypedQuery<JobEntity> query = em.createQuery(
             "SELECT j FROM JobEntity j WHERE j.deadline > :deadline ORDER BY j.deadline ASC",
             JobEntity.class);
-    query.setParameter("deadline", deadline);
-    return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
-  }
+      query.setParameter("deadline", deadline);
+      return query.getResultList().stream().map(mapper::toModel).collect(Collectors.toList());
+   }
 
-  @Override
-  public List<Job> findAllByOrderByDeadlineAsc() {
-    TypedQuery<JobEntity> query =
-        em.createQuery("SELECT j FROM JobEntity j ORDER BY j.deadline ASC", JobEntity.class);
-    List<JobEntity> entities = query.getResultList();
-    return entities.stream().map(mapper::toModel).collect(Collectors.toList());
-  }
+   @Override
+   public List<Job> findAllByOrderByDeadlineAsc() {
+      TypedQuery<JobEntity> query = em.createQuery("SELECT j FROM JobEntity j ORDER BY j.deadline ASC",
+            JobEntity.class);
+      List<JobEntity> entities = query.getResultList();
+      return entities.stream().map(mapper::toModel).collect(Collectors.toList());
+   }
+
+   public List<Job> findByDeadlineBetween(LocalDateTime start, LocalDateTime end) {
+      TypedQuery<JobEntity> query = em.createQuery(
+            "SELECT j FROM JobEntity j WHERE j.deadline >= :start AND j.deadline < :end ORDER BY j.deadline ASC",
+            JobEntity.class);
+      query.setParameter("start", start);
+      query.setParameter("end", end);
+      return query.getResultList().stream().map(mapper::toModel).toList();
+   }
+
 }

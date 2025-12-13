@@ -11,6 +11,8 @@ import com.laborplanner.backend.service.interfaces.IJobService;
 import com.laborplanner.backend.service.interfaces.IJobTemplateReadService;
 import com.laborplanner.backend.service.interfaces.IMachineTypeReadService;
 import jakarta.transaction.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -123,6 +125,13 @@ public class JobService implements IJobService {
    @Override
    public List<JobDto> findByRequiredMachineType(MachineType type) {
       return jobRepository.findByRequiredMachineType(type).stream().map(this::toDto).toList();
+   }
+
+   public List<JobDto> findJobsInDeadlineRange(LocalDateTime start, LocalDateTime end) {
+      return jobRepository.findByDeadlineBetween(start, end)
+            .stream()
+            .map(this::toDto)
+            .toList();
    }
 
    // -------------------------------------------------------
