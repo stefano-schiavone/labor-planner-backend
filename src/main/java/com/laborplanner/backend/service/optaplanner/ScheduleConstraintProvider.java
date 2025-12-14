@@ -2,6 +2,9 @@ package com.laborplanner.backend.service.optaplanner;
 
 import com.laborplanner.backend.model.ScheduledJob;
 import com.laborplanner.backend.model.TimeGrain;
+
+import java.time.LocalDateTime;
+
 import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScore;
 import org.optaplanner.core.api.score.stream.Constraint;
 import org.optaplanner.core.api.score.stream.ConstraintFactory;
@@ -15,7 +18,10 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
       return new Constraint[] {
             jobWithinAllowedHours(factory),
             machineConflict(factory),
-            machineTypeMismatch(factory)
+            machineTypeMismatch(factory),
+            jobMustFinishBeforeDeadline(factory),
+            jobMustFinishWithinDay(factory),
+            preferEarlyStart(factory)
       };
    }
 
@@ -27,14 +33,28 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                      if (job.getStartingTimeGrain() == null) {
                         return false;
                      }
-                     int startIndex = job.getStartingTimeGrain().getGrainIndex();
-                     int minIndex = ScheduledJob.START_HOUR
-                           * 60
-                           / TimeGrain.GRAIN_LENGTH_IN_MINUTES; // assuming 15-min grains
-                     int maxIndex = ScheduledJob.END_HOUR * 60 / TimeGrain.GRAIN_LENGTH_IN_MINUTES;
-                     return startIndex < minIndex || startIndex >= maxIndex;
+                     // Use the TimeGrain startingMinuteOfDay (minutes since midnight)
+                     int startingMinute = job.getStartingTimeGrain().getStartingMinuteOfDay();
+                     int minMinute = ScheduledJob.START_HOUR * 60; // 7 * 60 = 420
+                     int maxMinute = ScheduledJob.END_HOUR * 60; // 18 * 60 = 1080
+                     return startingMinute < minMinute || startingMinute >= maxMinute;
                   })
             .penalize("Job outside allowed hours", HardSoftScore.ONE_HARD);
+   }
+
+   private Constraint jobMustFinishWithinDay(ConstraintFactory factory) {
+      return factory.forEach(ScheduledJob.class)
+            .filter(sj -> {
+               if (sj.getStartingTimeGrain() == null)
+                  return false;
+               int endIndex = sj.getStartingTimeGrain().getGrainIndex() + sj.getDurationInGrains();
+               int grainsPerDay = (ScheduledJob.END_HOUR - ScheduledJob.START_HOUR) * 60
+                     / TimeGrain.GRAIN_LENGTH_IN_MINUTES;
+               int dayStartIndex = (sj.getStartingTimeGrain().getGrainIndex() / grainsPerDay) * grainsPerDay;
+               int dayEndIndex = dayStartIndex + grainsPerDay;
+               return endIndex > dayEndIndex;
+            })
+            .penalize("Job crosses day boundary", HardSoftScore.ONE_HARD);
    }
 
    private Constraint machineTypeMismatch(ConstraintFactory factory) {
@@ -67,4 +87,36 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             })
             .penalize("Machine conflict", HardSoftScore.ONE_HARD);
    }
+
+   private Constraint jobMustFinishBeforeDeadline(ConstraintFactory factory) {
+      return factory
+            .forEach(ScheduledJob.class)
+            .filter(sj -> {
+               if (sj.getStartingTimeGrain() == null ||
+                     sj.getJob() == null ||
+                     sj.getJob().getDeadline() == null) {
+                  return false;
+               }
+
+               LocalDateTime start = sj.getStartingTimeGrain().toDateTime();
+               LocalDateTime end = start.plusMinutes(
+                     sj.getDurationInGrains() * TimeGrain.GRAIN_LENGTH_IN_MINUTES);
+
+               return end.isAfter(sj.getJob().getDeadline());
+            })
+            .penalize("Job finishes after deadline", HardSoftScore.ONE_HARD);
+   }
+
+   private Constraint preferEarlyStart(ConstraintFactory factory) {
+      int maxMinutes = ScheduledJob.END_HOUR * 60; // e.g., 18*60 = 1080
+      return factory.forEach(ScheduledJob.class)
+            .reward("Prefer early start", HardSoftScore.ONE_SOFT,
+                  sj -> {
+                     if (sj.getStartingTimeGrain() == null)
+                        return 0;
+                     // reward = how much earlier than the latest minute
+                     return maxMinutes - sj.getStartingTimeGrain().getStartingMinuteOfDay();
+                  });
+   }
+
 }
