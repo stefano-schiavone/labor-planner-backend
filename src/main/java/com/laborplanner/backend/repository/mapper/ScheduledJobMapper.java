@@ -5,6 +5,8 @@ import com.laborplanner.backend.model.TimeGrain;
 import com.laborplanner.backend.repository.entity.ScheduleEntity;
 import com.laborplanner.backend.repository.entity.ScheduledJobEntity;
 
+import java.time.LocalDate;
+
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Context;
 import org.mapstruct.Mapper;
@@ -19,8 +21,11 @@ public interface ScheduledJobMapper extends BaseMapper<ScheduledJob, ScheduledJo
 
    @Mapping(source = "job", target = "job")
    @Mapping(source = "machine", target = "machine")
-   @Mapping(source = "startingTimeGrainIndex", target = "startingTimeGrain", qualifiedByName = "toTimeGrain")
-   ScheduledJob toModel(ScheduledJobEntity entity);
+   @Mapping(target = "startingTimeGrain", ignore = true)
+   // MapStruct will call this and we rely on the @Context weekStartDate to
+   // rehydrate the TimeGrain
+   @Named("toModelWithContext")
+   ScheduledJob toModel(ScheduledJobEntity entity, @Context LocalDate weekStartDate);
 
    @Mapping(source = "job", target = "job")
    @Mapping(source = "machine", target = "machine")
@@ -34,13 +39,14 @@ public interface ScheduledJobMapper extends BaseMapper<ScheduledJob, ScheduledJo
       return tg.getGrainIndex();
    }
 
-   // Convert int (DB) -> TimeGrain
-   @Named("toTimeGrain")
-   default TimeGrain toTimeGrain(int grainIndex) {
-      TimeGrain tg = new TimeGrain();
-      tg.setGrainIndex(grainIndex);
-      tg.setStartingMinuteOfDay(grainIndex * TimeGrain.GRAIN_LENGTH_IN_MINUTES);
-      return tg;
+   @AfterMapping
+   default void rehydrateGrain(
+         ScheduledJobEntity entity,
+         @MappingTarget ScheduledJob model,
+         @Context LocalDate weekStartDate) {
+      // Only rehydrate if the DB value is meaningful and weekStartDate is available
+      model.setStartingTimeGrain(
+            TimeGrain.fromIndex(entity.getStartingTimeGrainIndex(), weekStartDate));
    }
 
    @AfterMapping
@@ -51,4 +57,5 @@ public interface ScheduledJobMapper extends BaseMapper<ScheduledJob, ScheduledJo
 
       entity.setSchedule(schedule);
    }
+
 }

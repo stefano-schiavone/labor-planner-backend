@@ -52,5 +52,4 @@ public class ScheduleController {
             request.getWeekStart(),
             request.getWeekEnd());
    }
-
 }

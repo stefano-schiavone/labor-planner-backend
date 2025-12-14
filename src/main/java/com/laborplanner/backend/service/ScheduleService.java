@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import com.laborplanner.backend.dto.schedule.ScheduleDto;
 import com.laborplanner.backend.dto.scheduledJob.ScheduledJobDto;
+import com.laborplanner.backend.exception.schedule.ScheduleInfeasibleException;
 import com.laborplanner.backend.model.*;
 import com.laborplanner.backend.repository.JobRepository;
 import com.laborplanner.backend.repository.MachineRepository;
@@ -67,7 +68,7 @@ public class ScheduleService implements IScheduleService {
       UUID problemId = UUID.randomUUID();
 
       // Generate time grains
-      problem.setTimeGrainList(Schedule.generateTimeGrains());
+      problem.setTimeGrainList(Schedule.generateTimeGrains(problem.getWeekStartDate().toLocalDate()));
 
       // Load machines from DB to ensure type objects are populated
       List<Machine> allMachines = machineRepository.findAll();
@@ -155,7 +156,7 @@ public class ScheduleService implements IScheduleService {
       schedule.setCreatedByUser(user);
 
       // 3. Generate time grains
-      schedule.setTimeGrainList(Schedule.generateTimeGrains());
+      schedule.setTimeGrainList(Schedule.generateTimeGrains(weekStart.toLocalDate()));
 
       // 4. Load machines
       List<Machine> machines = machineRepository.findAll();
@@ -172,6 +173,10 @@ public class ScheduleService implements IScheduleService {
       try {
          Schedule solved = solverJob.getFinalBestSolution();
          solved.setLastModifiedDate(LocalDateTime.now());
+
+         if (solved.getScore() == null || !solved.getScore().isFeasible()) {
+            throw new ScheduleInfeasibleException();
+         }
 
          // Null out UUIDs so Hibernate treats as new rows
          solved.setScheduleUuid(null);

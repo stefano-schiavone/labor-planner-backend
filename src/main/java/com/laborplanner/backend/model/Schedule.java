@@ -1,5 +1,6 @@
 package com.laborplanner.backend.model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -63,15 +64,22 @@ public class Schedule {
       this.scheduledJobList = scheduledJobList;
    }
 
-   public static List<TimeGrain> generateTimeGrains() {
+   public static List<TimeGrain> generateTimeGrains(LocalDate weekStartDate) {
       List<TimeGrain> grains = new ArrayList<>();
+      int grainIndex = 0;
 
-      int startGrain = 7 * 60 / TimeGrain.GRAIN_LENGTH_IN_MINUTES; // 84
-      int endGrain = 18 * 60 / TimeGrain.GRAIN_LENGTH_IN_MINUTES; // 216
+      for (int day = 0; day < 7; day++) {
+         LocalDate date = weekStartDate.plusDays(day);
 
-      for (int i = startGrain; i < endGrain; i++) {
-         int startingMinute = i * TimeGrain.GRAIN_LENGTH_IN_MINUTES;
-         grains.add(new TimeGrain(i, startingMinute));
+         int startMinute = ScheduledJob.START_HOUR * 60;
+         int endMinute = ScheduledJob.END_HOUR * 60;
+
+         for (int minute = startMinute; minute < endMinute; minute += TimeGrain.GRAIN_LENGTH_IN_MINUTES) {
+            grains.add(new TimeGrain(
+                  grainIndex++,
+                  minute,
+                  date));
+         }
       }
 
       return grains;
