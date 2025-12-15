@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
@@ -23,10 +25,6 @@ public class JobController {
    public JobController(JobService jobService) {
       this.jobService = jobService;
    }
-
-   // -------------------------------------------------------
-   // CRUD Endpoints
-   // -------------------------------------------------------
 
    @Operation(summary = "Get all jobs")
    @GetMapping
@@ -45,7 +43,6 @@ public class JobController {
    public ResponseEntity<JobResponse> createJob(@RequestBody @Valid JobRequest request) {
       JobDto dto = toDto(request);
 
-      // service returns JobDto
       JobDto created = jobService.createJob(dto);
 
       JobResponse response = toResponse(created);
@@ -69,17 +66,45 @@ public class JobController {
       jobService.deleteJob(uuid);
    }
 
+   @Operation(summary = "Get jobs whose deadlines fall inside a specific week")
+   @GetMapping("/by-deadline")
+   public List<JobResponse> getJobsByDeadlineRange(
+         @RequestParam("start") String startIso,
+         @RequestParam("end") String endIso) {
+
+      OffsetDateTime startDt = OffsetDateTime.parse(startIso);
+      OffsetDateTime endDt = OffsetDateTime.parse(endIso);
+
+      LocalDateTime startLocal = startDt.toLocalDateTime();
+      LocalDateTime endLocal = endDt.toLocalDateTime();
+
+      return jobService.findJobsInDeadlineRange(startLocal, endLocal)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+   }
+
+   // @GetMapping("/{weekId}")
+   // public ResponseEntity<?> getScheduleByWeekId(@PathVariable String weekId) {
+   // var schedule = scheduleService.findByWeekId(weekId);
+   // return schedule
+   // .<ResponseEntity<?>>map(ResponseEntity::ok)
+   // .orElseGet(() -> ResponseEntity.notFound().build());
+   // }
+
    // -------------------------------------------------------
    // Mapping Helpers
    // -------------------------------------------------------
 
    private JobResponse toResponse(JobDto dto) {
+      // now dto exposes minutes directly
+      Integer durationMinutes = dto.getDurationMinutes();
       return new JobResponse(
             dto.getJobUuid(),
             dto.getTemplateUuid(),
             dto.getName(),
             dto.getDescription(),
-            dto.getDuration(),
+            durationMinutes,
             dto.getDeadline(),
             dto.getRequiredMachineTypeUuid());
    }
@@ -89,7 +114,7 @@ public class JobController {
             req.getTemplateUuid(),
             req.getName(),
             req.getDescription(),
-            req.getDuration(),
+            req.getDurationMinutes(),
             req.getDeadline(),
             req.getRequiredMachineTypeUuid());
    }

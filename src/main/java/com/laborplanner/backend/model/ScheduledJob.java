@@ -1,7 +1,11 @@
 package com.laborplanner.backend.model;
 
 import lombok.*;
+
+import java.util.List;
+
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
+import org.optaplanner.core.api.domain.lookup.PlanningId;
 import org.optaplanner.core.api.domain.variable.PlanningVariable;
 
 @Getter
@@ -10,50 +14,65 @@ import org.optaplanner.core.api.domain.variable.PlanningVariable;
 @PlanningEntity // For Optaplanner
 public class ScheduledJob {
 
-  // Fields
-  private String scheduledJobUuid;
+   // Fields
+   @PlanningId
+   private String scheduledJobUuid;
 
-  private Job job;
+   private Job job;
 
-  private Machine machine;
+   @PlanningVariable(valueRangeProviderRefs = { "compatibleMachineRange" })
+   private Machine machine;
 
-  @PlanningVariable(valueRangeProviderRefs = "timeGrainRange")
-  private TimeGrain startingTimeGrain;
+   @PlanningVariable(valueRangeProviderRefs = "timeGrainRange")
+   private TimeGrain startingTimeGrain;
 
-  // Constants for allowed scheduling window
-  public static final int START_HOUR = 7;
-  public static final int END_HOUR = 18;
+   // Constants for allowed scheduling window
+   public static final int START_HOUR = 7;
+   public static final int END_HOUR = 18;
 
-  // Constructor
-  public ScheduledJob(Job job, Machine machine, TimeGrain startingTimeGrain) {
-    this.job = job;
-    this.machine = machine;
-    validateTimeGrain(startingTimeGrain);
-    this.startingTimeGrain = startingTimeGrain;
-  }
+   // Runtime-only field for storing compatible machines
+   private List<Machine> compatibleMachines;
 
-  private void validateTimeGrain(TimeGrain tg) {
-    int startGrainIndex = START_HOUR * 60 / TimeGrain.GRAIN_LENGTH_IN_MINUTES;
-    int endGrainIndex = END_HOUR * 60 / TimeGrain.GRAIN_LENGTH_IN_MINUTES;
+   // Constructor
+   public ScheduledJob(Job job, Machine machine, TimeGrain startingTimeGrain) {
+      this.job = job;
+      this.machine = machine;
+      this.startingTimeGrain = startingTimeGrain;
+   }
 
-    if (tg.getGrainIndex() < startGrainIndex || tg.getGrainIndex() >= endGrainIndex) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Scheduled job must start between %02d:00 and %02d:00", START_HOUR, END_HOUR));
-    }
-  }
+   public void setCompatibleMachines(List<Machine> machines) {
+      this.compatibleMachines = machines;
+   }
+
+   // Helper: compute how many time grains this job occupies (round up)
+   public int getDurationInGrains() {
+      if (job == null || job.getDurationMinutes() == null) {
+         return 1;
+      }
+      long minutes = job.getDurationMinutes();
+      int grainSize = TimeGrain.GRAIN_LENGTH_IN_MINUTES;
+      int grains = (int) ((minutes + grainSize - 1) / grainSize);
+      return Math.max(1, grains);
+   }
+
+   // Helper: last (exclusive) grain index (end = start + durationInGrains)
+   public Integer getEndTimeGrainIndex() {
+      if (startingTimeGrain == null) {
+         return null;
+      }
+      return startingTimeGrain.getGrainIndex() + getDurationInGrains(); // exclusive end
+   }
+
+   // Overlap check similar to MeetingAssignment.calculateOverlap
+   public boolean overlapsWith(ScheduledJob other) {
+      if (this.startingTimeGrain == null || other == null || other.getStartingTimeGrain() == null) {
+         return false;
+      }
+      int thisStart = this.startingTimeGrain.getGrainIndex();
+      int otherStart = other.getStartingTimeGrain().getGrainIndex();
+      int thisEnd = thisStart + this.getDurationInGrains(); // exclusive
+      int otherEnd = otherStart + other.getDurationInGrains(); // exclusive
+      // intervals [start, end) overlap when start < otherEnd && otherStart < end
+      return thisStart < otherEnd && otherStart < thisEnd;
+   }
 }
-
-// @PlanningVariable(valueRangeProviderRefs = "availableTimeGrains")
-// private TimeGrain startingTimeGrain;
-
-// private Constraint jobOutsideAllowedWindow(ConstraintFactory factory) {
-//     int startGrainIndex = 7 * 60 / TimeGrain.GRAIN_LENGTH_IN_MINUTES; // 84
-//     int endGrainIndex = 18 * 60 / TimeGrain.GRAIN_LENGTH_IN_MINUTES; // 216
-
-//     return factory.forEach(ScheduledJob.class)
-//             .filter(job -> job.getStartingTimeGrain().getGrainIndex() < startGrainIndex
-//                         || job.getStartingTimeGrain().getGrainIndex() >= endGrainIndex)
-//             .penalize(HardSoftScore.ONE_HARD)
-//             .asConstraint("Job outside allowed hours");
-// }
