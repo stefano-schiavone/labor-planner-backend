@@ -21,7 +21,8 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             machineTypeMismatch(factory),
             jobMustFinishBeforeDeadline(factory),
             jobMustFinishWithinDay(factory),
-            preferEarlyStart(factory)
+            preferEarlyFinishOverall(factory),
+            preferOneGrainGapBetweenJobs(factory)
       };
    }
 
@@ -107,16 +108,59 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             .penalize("Job finishes after deadline", HardSoftScore.ONE_HARD);
    }
 
-   private Constraint preferEarlyStart(ConstraintFactory factory) {
-      int maxMinutes = ScheduledJob.END_HOUR * 60; // e.g., 18*60 = 1080
+   private Constraint preferEarlyFinishOverall(ConstraintFactory factory) {
       return factory.forEach(ScheduledJob.class)
-            .reward("Prefer early start", HardSoftScore.ONE_SOFT,
+            .penalize(
+                  "Prefer early finish (week > day)",
+                  HardSoftScore.ONE_SOFT,
                   sj -> {
-                     if (sj.getStartingTimeGrain() == null)
+                     if (sj.getStartingTimeGrain() == null) {
                         return 0;
-                     // reward = how much earlier than the latest minute
-                     return maxMinutes - sj.getStartingTimeGrain().getStartingMinuteOfDay();
+                     }
+                     // Later grainIndex = higher penalty
+                     return sj.getStartingTimeGrain().getGrainIndex();
                   });
+   }
+
+   private Constraint preferOneGrainGapBetweenJobs(ConstraintFactory factory) {
+      return factory.forEachUniquePair(
+            ScheduledJob.class,
+            Joiners.equal(ScheduledJob::getMachine))
+            .filter((sj1, sj2) -> {
+               if (sj1.getStartingTimeGrain() == null || sj2.getStartingTimeGrain() == null) {
+                  return false;
+               }
+               // Ignore overlapping jobs (handled by hard constraint)
+               return !sj1.overlapsWith(sj2);
+            })
+            .penalize(
+                  "Prefer 1-grain gap between jobs",
+                  HardSoftScore.ONE_HARD,
+                  (sj1, sj2) -> {
+                     int gap = gapInGrains(sj1, sj2);
+
+                     // Penalize if gap < 1
+                     return gap >= 1 ? 0 : (1 - gap);
+                  });
+   }
+
+   // HELPERS
+   private int gapInGrains(ScheduledJob a, ScheduledJob b) {
+      int aStart = a.getStartingTimeGrain().getGrainIndex();
+      int aEnd = aStart + a.getDurationInGrains();
+
+      int bStart = b.getStartingTimeGrain().getGrainIndex();
+      int bEnd = bStart + b.getDurationInGrains();
+
+      // Determine order
+      if (aEnd <= bStart) {
+         return bStart - aEnd;
+      } else if (bEnd <= aStart) {
+         return aStart - bEnd;
+      } else {
+         // overlapping
+         return 0;
+      }
    }
 
 }

@@ -53,10 +53,6 @@ public class ScheduleService implements IScheduleService {
    @Override
    @Transactional
    public ScheduleDto getScheduleForWeek(LocalDateTime weekStart, LocalDateTime weekEnd) {
-      System.out.println("weekStart: " + weekStart);
-      System.out.println("weekEnd: " + weekStart);
-      // Schedule schedule = scheduleRepository.findByWeekStartDateBetween(weekStart,
-      // weekEnd)
       Schedule schedule = scheduleRepository.findByWeekStartDate(weekStart)
             .stream().findFirst().orElse(null);
       return schedule != null ? toDto(schedule) : null;
@@ -196,11 +192,15 @@ public class ScheduleService implements IScheduleService {
             .map(this::toScheduledJobDto)
             .toList();
 
+      // NOTE: Keeping Machines here for simplicity (not DTO)
+      List<Machine> machineList = machineRepository.findAll();
+
       return new ScheduleDto(
             schedule.getScheduleUuid(),
             schedule.getWeekStartDate(),
             schedule.getLastModifiedDate(),
-            scheduledJobDtos);
+            scheduledJobDtos,
+            machineList);
    }
 
    private ScheduledJobDto toScheduledJobDto(ScheduledJob scheduledJob) {

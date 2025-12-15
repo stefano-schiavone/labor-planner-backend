@@ -1,6 +1,8 @@
 package com.laborplanner.backend.dto.schedule;
 
 import com.laborplanner.backend.dto.scheduledJob.ScheduledJobDto;
+import com.laborplanner.backend.model.Machine;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,6 +24,8 @@ public class ScheduleDto {
    private LocalDateTime lastModifiedDate;
 
    private List<ScheduledJobDto> scheduledJobList;
+
+   private List<Machine> machineList;
 
    public ScheduleDto(LocalDateTime weekStartDate,
          List<ScheduledJobDto> scheduledJobList) {
