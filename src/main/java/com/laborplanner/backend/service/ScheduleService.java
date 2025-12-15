@@ -132,7 +132,7 @@ public class ScheduleService implements IScheduleService {
 
    @Override
    @Transactional
-   public Schedule solveForWeek(LocalDateTime weekStart, LocalDateTime weekEnd) {
+   public ScheduleDto solveForWeek(LocalDateTime weekStart, LocalDateTime weekEnd) {
 
       // 1. Load jobs with deadlines in this week
       List<Job> jobs = jobRepository
@@ -178,7 +178,8 @@ public class ScheduleService implements IScheduleService {
          solved.setScheduleUuid(null);
          solved.getScheduledJobList().forEach(job -> job.setScheduledJobUuid(null));
 
-         return scheduleRepository.create(solved);
+         Schedule solvedInDB = scheduleRepository.create(solved);
+         return toDto(solvedInDB);
       } catch (InterruptedException | ExecutionException e) {
          throw new IllegalStateException("Solving failed", e);
       }

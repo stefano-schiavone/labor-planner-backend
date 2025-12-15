@@ -11,5 +11,5 @@ public interface IScheduleService {
 
    Schedule solveSchedule(Schedule problem);
 
-   Schedule solveForWeek(LocalDateTime weekStart, LocalDateTime weekEnd);
+   ScheduleDto solveForWeek(LocalDateTime weekStart, LocalDateTime weekEnd);
 }

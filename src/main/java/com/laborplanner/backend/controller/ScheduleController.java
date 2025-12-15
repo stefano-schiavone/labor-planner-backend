@@ -47,9 +47,22 @@ public class ScheduleController {
    }
 
    @PostMapping("/solve-for-week")
-   public Schedule solveForWeek(@RequestBody SolveWeekRequest request) {
-      return scheduleService.solveForWeek(
+   public WeekScheduleResponse solveForWeek(@RequestBody SolveWeekRequest request) {
+      var schedule = scheduleService.solveForWeek(
             request.getWeekStart(),
             request.getWeekEnd());
+      WeekScheduleResponse response = new WeekScheduleResponse();
+
+      if (schedule != null) {
+         response.setExists(true);
+         response.setSchedule(schedule);
+         response.setScheduledJobs(schedule.getScheduledJobList());
+      } else {
+         response.setExists(false);
+         response.setCandidateJobs(
+               jobService.findJobsInDeadlineRange(request.getWeekStart(), request.getWeekEnd()));
+      }
+
+      return response;
    }
 }
