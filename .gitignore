@@ -9,6 +9,9 @@ cache/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+.jdtls-workspace/
+cache/
+*.zip
 
 ### MacOS ###
 .DS_Store
