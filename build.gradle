@@ -44,6 +44,14 @@ dependencies {
    implementation 'org.mapstruct:mapstruct:1.6.3'
    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
+   // Spring Security
+    implementation 'org.springframework.boot:spring-boot-starter-security:3.5.8'
+
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+
    // PostgreSQL
    implementation 'org.postgresql:postgresql:42.6.0'
 
@@ -58,7 +66,7 @@ dependencies {
    testImplementation("org.optaplanner:optaplanner-test")
 
    // Serializing Duration
-implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+   implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
    // H2 Database
    testImplementation 'com.h2database:h2'

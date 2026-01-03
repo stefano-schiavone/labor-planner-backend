@@ -10,6 +10,9 @@ import java.util.stream.Collectors;
 
 import org.optaplanner.core.api.solver.SolverJob;
 import org.optaplanner.core.api.solver.SolverManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import com.laborplanner.backend.dto.schedule.ScheduleDto;
@@ -107,7 +110,7 @@ public class ScheduleService implements IScheduleService {
          // Load the required MachineType object from DB using UUID
          MachineType requiredType = machineTypeCache.get(job.getRequiredMachineTypeUuid());
          if (requiredType == null)
-            throw new IllegalStateException("MachineType not found: " + job.getRequiredMachineTypeUuid());
+            throw new IllegalStateException("MachineType not found:  " + job.getRequiredMachineTypeUuid());
 
          // Populate the full object for internal logic
          job.setRequiredMachineType(requiredType);
@@ -147,9 +150,10 @@ public class ScheduleService implements IScheduleService {
       schedule.setScheduleUuid(UUID.randomUUID().toString());
       schedule.setWeekStartDate(weekStart);
       schedule.setJobList(jobs);
-      User user = userRepository.findByUuid("0d5965dc-5fda-4441-98e8-8fcf6b1ccfb6")
-            .orElseThrow(() -> new IllegalStateException("User not found"));
-      schedule.setCreatedByUser(user);
+
+      // Get the currently authenticated user
+      User currentUser = getCurrentAuthenticatedUser();
+      schedule.setCreatedByUser(currentUser);
 
       // 3. Generate time grains
       schedule.setTimeGrainList(Schedule.generateTimeGrains(weekStart.toLocalDate()));
@@ -183,6 +187,32 @@ public class ScheduleService implements IScheduleService {
       } catch (InterruptedException | ExecutionException e) {
          throw new IllegalStateException("Solving failed", e);
       }
+   }
+
+   /**
+    * Get the currently authenticated user from Spring Security context
+    *
+    * @return User entity
+    * @throws IllegalStateException if user is not authenticated or not found
+    */
+   private User getCurrentAuthenticatedUser() {
+      Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+      if (authentication == null || !authentication.isAuthenticated()) {
+         throw new IllegalStateException("No authenticated user found");
+      }
+
+      Object principal = authentication.getPrincipal();
+
+      if (!(principal instanceof UserDetails)) {
+         throw new IllegalStateException("Invalid authentication principal type");
+      }
+
+      UserDetails userDetails = (UserDetails) principal;
+      String email = userDetails.getUsername(); // In your case, username is email
+
+      return userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalStateException("User not found: " + email));
    }
 
    // Converting methods

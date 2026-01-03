@@ -1,10 +1,12 @@
 package com.laborplanner.backend.service;
 
+import com.laborplanner.backend.dto.user.CreateUserRequest;
 import com.laborplanner.backend.exception.user.UserNotFoundException;
 import com.laborplanner.backend.model.User;
 import com.laborplanner.backend.repository.UserRepository;
 import com.laborplanner.backend.service.interfaces.*;
 import jakarta.transaction.Transactional;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -12,70 +14,81 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserService implements IUserService, IUserAuthService, IUserTokenService {
 
-  private final UserRepository userRepository;
+   private final UserRepository userRepository;
 
-  public UserService(UserRepository userRepository) {
-    this.userRepository = userRepository;
-  }
+   public UserService(UserRepository userRepository) {
+      this.userRepository = userRepository;
+   }
 
-  // ---------------------------
-  // IUserService Implementation
-  // ---------------------------
-  // @Override
-  public User createUser(User user) {
-    return userRepository.create(user);
-  }
+   // ---------------------------
+   // IUserService Implementation
+   // ---------------------------
+   // @Override
+   public User createUser(CreateUserRequest request) {
+      // Convert DTO to User entity
+      User user = new User();
+      user.setName(request.getName());
+      user.setLastName(request.getLastName());
+      user.setEmail(request.getEmail());
+      user.setType(request.getType());
 
-  // @Override
-  public User getUserByUuid(String userUuid) {
-    return userRepository
-        .findByUuid(userUuid)
-        .orElseThrow(() -> new UserNotFoundException(userUuid));
-  }
+      // Hash the password before storing
+      String hashedPassword = new BCryptPasswordEncoder().encode(request.getPassword());
+      user.setPasswordHash(hashedPassword);
 
-  // @Override
-  public User updateUser(String uuid, User updatedUser) {
-    // Find existing user by UUID
-    User existingUser =
-        userRepository.findByUuid(uuid).orElseThrow(() -> new UserNotFoundException(uuid));
+      return userRepository.create(user);
+   }
 
-    // Update fields
-    existingUser.setName(updatedUser.getName());
-    existingUser.setLastName(updatedUser.getLastName());
-    existingUser.setEmail(updatedUser.getEmail());
-    existingUser.setType(updatedUser.getType());
+   // @Override
+   public User getUserByUuid(String userUuid) {
+      return userRepository
+            .findByUuid(userUuid)
+            .orElseThrow(() -> new UserNotFoundException(userUuid));
+   }
 
-    // Save and return
-    return userRepository.update(existingUser);
-  }
+   // @Override
+   public User updateUser(String uuid, User updatedUser) {
+      // Find existing user by UUID
+      User existingUser = userRepository.findByUuid(uuid).orElseThrow(() -> new UserNotFoundException(uuid));
 
-  // @Override
-  public void deleteUser(String userUuid) {
-    if (!userRepository.existsByUuid(userUuid)) {
-      throw new RuntimeException("User not found with UUID: " + userUuid);
-    }
-    userRepository.deleteByUuid(userUuid);
-  }
+      // Update fields
+      existingUser.setName(updatedUser.getName());
+      existingUser.setLastName(updatedUser.getLastName());
+      existingUser.setEmail(updatedUser.getEmail());
+      existingUser.setType(updatedUser.getType());
 
-  // @Override
-  public List<User> getAllUsers() {
-    return userRepository.findAll();
-  }
+      // Save and return
+      return userRepository.update(existingUser);
+   }
 
-  // ---------------------------
-  // IUserAuthService Implementation
-  // ---------------------------
-  // @Override
-  public User getUserByEmail(String email) {
-    return userRepository
-        .findByEmail(email)
-        .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-  }
+   // @Override
+   public void deleteUser(String userUuid) {
+      if (!userRepository.existsByUuid(userUuid)) {
+         throw new RuntimeException("User not found with UUID: " + userUuid);
+      }
+      userRepository.deleteByUuid(userUuid);
+   }
 
-  // Note: createUser() and updateUser() already implemented in section for IUserService
+   // @Override
+   public List<User> getAllUsers() {
+      return userRepository.findAll();
+   }
 
-  // ---------------------------
-  // IUserTokenService Implementation
-  // ---------------------------
-  // Note: getUserByUuid() already implemented in IUserService
+   // ---------------------------
+   // IUserAuthService Implementation
+   // ---------------------------
+   // @Override
+   public User getUserByEmail(String email) {
+      return userRepository
+            .findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+   }
+
+   // Note: createUser() and updateUser() already implemented in section for
+   // IUserService
+
+   // ---------------------------
+   // IUserTokenService Implementation
+   // ---------------------------
+   // Note: getUserByUuid() already implemented in IUserService
 }

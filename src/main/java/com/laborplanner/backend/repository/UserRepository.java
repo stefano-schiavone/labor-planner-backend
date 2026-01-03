@@ -7,6 +7,8 @@ import com.laborplanner.backend.repository.mapper.UserMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
+
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -21,6 +23,7 @@ public class UserRepository extends BaseRepository<UserEntity, User, UserMapper>
       super(UserEntity.class, mapper);
    }
 
+   @Transactional()
    @Override
    public Optional<User> findByEmail(String email) {
       TypedQuery<UserEntity> query = em.createQuery("SELECT u FROM UserEntity u WHERE u.email = :email",
