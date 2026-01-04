@@ -3,10 +3,13 @@ package com.laborplanner.backend.service;
 import com.laborplanner.backend.dto.job.JobDto;
 import com.laborplanner.backend.exception.job.DuplicateJobNameException;
 import com.laborplanner.backend.exception.job.JobNotFoundException;
+import com.laborplanner.backend.exception.scheduledJob.ScheduledJobConflictException;
 import com.laborplanner.backend.model.Job;
 import com.laborplanner.backend.model.JobTemplate;
 import com.laborplanner.backend.model.MachineType;
+import com.laborplanner.backend.model.Schedule;
 import com.laborplanner.backend.repository.JobRepository;
+import com.laborplanner.backend.repository.ScheduleRepository;
 import com.laborplanner.backend.service.interfaces.IJobService;
 import com.laborplanner.backend.service.interfaces.IJobTemplateReadService;
 import com.laborplanner.backend.service.interfaces.IMachineTypeReadService;
@@ -14,6 +17,8 @@ import jakarta.transaction.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -23,14 +28,17 @@ import org.springframework.stereotype.Service;
 public class JobService implements IJobService {
 
    private final JobRepository jobRepository;
+   private final ScheduleRepository scheduleRepository;
    private final IMachineTypeReadService machineTypeService;
    private final IJobTemplateReadService jobTemplateService;
 
    public JobService(
          JobRepository jobRepository,
+         ScheduleRepository scheduleRepository,
          IMachineTypeReadService machineTypeService,
          IJobTemplateReadService jobTemplateService) {
       this.jobRepository = jobRepository;
+      this.scheduleRepository = scheduleRepository;
       this.machineTypeService = machineTypeService;
       this.jobTemplateService = jobTemplateService;
    }
@@ -115,11 +123,54 @@ public class JobService implements IJobService {
 
    @Override
    public void deleteJob(String uuid) {
+      log.info("Attempting to delete job: uuid='{}'", uuid);
+
       if (!jobRepository.existsByUuid(uuid)) {
+         log.warn("Job not found: {}", uuid);
          throw new JobNotFoundException(uuid);
       }
-      jobRepository.deleteByUuid(uuid);
-      log.info("Deleted job: uuid='{}'", uuid);
+
+      // Check if job is part of any schedule
+      try {
+         Optional<Schedule> conflictingSchedule = scheduleRepository.findScheduleContainingJob(uuid);
+         if (conflictingSchedule.isPresent()) {
+            Schedule schedule = conflictingSchedule.get();
+            log.warn("Job {} is part of schedule {}", uuid, schedule.getScheduleUuid());
+            throw new ScheduledJobConflictException(uuid, schedule.getScheduleUuid());
+         }
+      } catch (ScheduledJobConflictException e) {
+         // Re-throw the conflict exception
+         throw e;
+      } catch (Exception e) {
+         log.error("Error checking for schedule conflicts: {}", e.getMessage(), e);
+         // Continue - will be caught by DB constraint if needed
+      }
+
+      try {
+         jobRepository.deleteByUuid(uuid);
+         log.info("Deleted job: uuid='{}'", uuid);
+      } catch (Exception e) {
+         log.error("Failed to delete job {}: {}", uuid, e.getMessage(), e);
+
+         // Check if it's a foreign key constraint violation
+         String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+         if (errorMsg.contains("foreign key") || errorMsg.contains("fktg2i8rwld0yc9jn0s4kixiawk")) {
+            // Try to find the schedule again as a fallback
+            try {
+               Optional<Schedule> schedule = scheduleRepository.findScheduleContainingJob(uuid);
+               if (schedule.isPresent()) {
+                  log.warn("Found conflicting schedule on FK error:  {}", schedule.get().getScheduleUuid());
+                  throw new ScheduledJobConflictException(uuid, schedule.get().getScheduleUuid());
+               }
+            } catch (ScheduledJobConflictException ex) {
+               throw ex;
+            } catch (Exception ex) {
+               log.error("Could not determine conflicting schedule", ex);
+            }
+         }
+
+         throw new IllegalStateException("Failed to delete job:  " + e.getMessage(), e);
+      }
    }
 
    @Override
