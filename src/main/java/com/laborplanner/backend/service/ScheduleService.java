@@ -138,14 +138,18 @@ public class ScheduleService implements IScheduleService {
    public ScheduleDto solveForWeek(LocalDateTime weekStart, LocalDateTime weekEnd) {
 
       // 1. Load jobs with deadlines in this week
-      List<Job> jobs = jobRepository
-            .findByDeadlineBetween(weekStart, weekEnd);
-
+      List<Job> jobs = jobRepository.findByDeadlineBetween(weekStart, weekEnd);
       if (jobs.isEmpty()) {
          throw new IllegalStateException("No jobs found for selected week.");
       }
 
-      // 2. Create schedule
+      // 2. Check if a schedule already exists for this week
+      scheduleRepository.findByWeekStartDate(weekStart).ifPresent(existingSchedule -> {
+         // If so, delete
+         scheduleRepository.deleteByUuid(existingSchedule.getScheduleUuid());
+      });
+
+      // 3. Create new schedule
       Schedule schedule = new Schedule();
       schedule.setScheduleUuid(UUID.randomUUID().toString());
       schedule.setWeekStartDate(weekStart);
@@ -155,19 +159,18 @@ public class ScheduleService implements IScheduleService {
       User currentUser = getCurrentAuthenticatedUser();
       schedule.setCreatedByUser(currentUser);
 
-      // 3. Generate time grains
+      // 4. Generate time grains
       schedule.setTimeGrainList(Schedule.generateTimeGrains(weekStart.toLocalDate()));
 
-      // 4. Load machines
+      // 5. Load machines
       List<Machine> machines = machineRepository.findAll();
       schedule.setMachineList(machines);
 
-      // 5. Create ScheduledJobs
+      // 6. Create ScheduledJobs
       List<ScheduledJob> scheduledJobs = createScheduledJobs(jobs, machines);
-
       schedule.setScheduledJobList(scheduledJobs);
 
-      // 6. Solve
+      // 7. Solve with OptaPlanner
       SolverJob<Schedule, UUID> solverJob = solverManager.solve(UUID.randomUUID(), schedule);
 
       try {
@@ -178,10 +181,11 @@ public class ScheduleService implements IScheduleService {
             throw new ScheduleInfeasibleException();
          }
 
-         // Null out UUIDs so Hibernate treats as new rows
+         // Null out UUIDs so Hibernate treats them as new rows
          solved.setScheduleUuid(null);
          solved.getScheduledJobList().forEach(job -> job.setScheduledJobUuid(null));
 
+         // 8. Persist new schedule
          Schedule solvedInDB = scheduleRepository.create(solved);
          return toDto(solvedInDB);
       } catch (InterruptedException | ExecutionException e) {
@@ -213,6 +217,15 @@ public class ScheduleService implements IScheduleService {
 
       return userRepository.findByEmail(email)
             .orElseThrow(() -> new IllegalStateException("User not found: " + email));
+   }
+
+   @Override
+   @Transactional
+   public void deleteSchedule(String uuid) {
+      if (!scheduleRepository.existsByUuid(uuid)) {
+         throw new IllegalArgumentException("Schedule not found:  " + uuid);
+      }
+      scheduleRepository.deleteByUuid(uuid);
    }
 
    // Converting methods

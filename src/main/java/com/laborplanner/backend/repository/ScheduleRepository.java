@@ -8,12 +8,16 @@ import com.laborplanner.backend.repository.mapper.ScheduleMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
 
+@Slf4j
 @Repository
 public class ScheduleRepository extends BaseRepository<ScheduleEntity, Schedule, ScheduleMapper>
       implements ScheduleRepositoryCustom {
@@ -71,5 +75,21 @@ public class ScheduleRepository extends BaseRepository<ScheduleEntity, Schedule,
       query.setParameter("user", user);
       query.setMaxResults(1);
       return query.getResultStream().findFirst().map(mapper::toModel);
+   }
+
+   @Override
+   public Optional<Schedule> findScheduleContainingJob(String jobUuid) {
+      try {
+         // Query through ScheduledJobEntity instead
+         TypedQuery<ScheduleEntity> query = em.createQuery(
+               "SELECT DISTINCT sj. schedule FROM ScheduledJobEntity sj " +
+                     "WHERE sj. job.jobUuid = :jobUuid",
+               ScheduleEntity.class);
+         query.setParameter("jobUuid", UUID.fromString(jobUuid));
+         return query.getResultStream().findFirst().map(mapper::toModel);
+      } catch (Exception e) {
+         log.error("Error finding schedule containing job {}: {}", jobUuid, e.getMessage());
+         return Optional.empty();
+      }
    }
 }

@@ -12,4 +12,6 @@ public interface IScheduleService {
    Schedule solveSchedule(Schedule problem);
 
    ScheduleDto solveForWeek(LocalDateTime weekStart, LocalDateTime weekEnd);
+
+   void deleteSchedule(String uuid);
 }
