@@ -12,22 +12,25 @@ import lombok.*;
 @NoArgsConstructor // Required by JPA
 public class UserEntity {
 
-  // Fields
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  @Column(name = "user_uuid", nullable = false, updatable = false)
-  private UUID userUuid;
+   // Fields
+   @Id
+   @GeneratedValue(strategy = GenerationType.AUTO)
+   @Column(name = "user_uuid", nullable = false, updatable = false)
+   private UUID userUuid;
 
-  @Column(name = "name", nullable = false)
-  private String name;
+   @Column(name = "name", nullable = false)
+   private String name;
 
-  @Column(name = "last_name", nullable = false)
-  private String lastName;
+   @Column(name = "last_name", nullable = false)
+   private String lastName;
 
-  @Column(name = "email", nullable = false, unique = true)
-  private String email;
+   @Column(name = "email", nullable = false, unique = true)
+   private String email;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "account_type_uuid", nullable = false)
-  private AccountTypeEntity type;
+   @Column(name = "password_hash", nullable = false)
+   private String passwordHash;
+
+   @ManyToOne(fetch = FetchType.LAZY)
+   @JoinColumn(name = "account_type_uuid", nullable = false)
+   private AccountTypeEntity type;
 }
