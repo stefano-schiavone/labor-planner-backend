@@ -8,9 +8,11 @@ import com.laborplanner.backend.dto.job.JobDto;
 import com.laborplanner.backend.exception.job.DuplicateJobNameException;
 import com.laborplanner.backend.exception.job.JobNotFoundException;
 import com.laborplanner.backend.exception.machine.MachineTypeNotFoundException;
+import com.laborplanner.backend.exception.scheduledJob.ScheduledJobConflictException;
 import com.laborplanner.backend.model.Job;
 import com.laborplanner.backend.model.JobTemplate;
 import com.laborplanner.backend.model.MachineType;
+import com.laborplanner.backend.model.Schedule;
 import com.laborplanner.backend.repository.JobRepository;
 import com.laborplanner.backend.repository.ScheduleRepository;
 import com.laborplanner.backend.service.JobService;
@@ -355,5 +357,140 @@ class JobServiceTest {
       assertEquals(2, results.size());
       assertEquals("x1", results.get(0).getJobUuid());
       assertEquals("mt-1", results.get(0).getRequiredMachineTypeUuid());
+   }
+
+   @Test
+   void updateJob_withTemplateUuid_loadsTemplate_and_returnsDtoWithTemplate() {
+      MachineType existingType = new MachineType();
+      existingType.setMachineTypeUuid("old-m");
+      Job existing = new Job("Old", "oldDesc", 10, LocalDateTime.now().plusDays(1), existingType, null);
+      existing.setJobUuid("job-tpl-1");
+
+      JobDto dto = new JobDto(
+            "job-tpl-1",
+            "tpl-123",
+            "New",
+            "desc",
+            30,
+            LocalDateTime.now().plusDays(2),
+            "mt-1");
+
+      MachineType required = new MachineType();
+      required.setMachineTypeUuid("mt-1");
+
+      JobTemplate template = new JobTemplate();
+      template.setJobTemplateUuid("tpl-123");
+
+      when(jobRepository.findByUuid("job-tpl-1")).thenReturn(Optional.of(existing));
+      when(jobRepository.existsByName("New")).thenReturn(false);
+      when(machineTypeService.getTypeByUuid("mt-1")).thenReturn(required);
+      when(jobTemplateService.getJobTemplateByUuid("tpl-123")).thenReturn(template);
+      when(jobRepository.update(any(Job.class))).thenAnswer(i -> i.getArgument(0));
+
+      JobDto updated = jobService.updateJob("job-tpl-1", dto);
+
+      assertEquals("job-tpl-1", updated.getJobUuid());
+      assertEquals("tpl-123", updated.getTemplateUuid());
+      verify(jobTemplateService).getJobTemplateByUuid("tpl-123");
+   }
+
+   @Test
+   void findJobsInDeadlineRange_returnsMappedDtos() {
+      MachineType mt = new MachineType();
+      mt.setMachineTypeUuid("mt-1");
+
+      Job j1 = new Job("A", "d", 10, LocalDateTime.now().plusDays(1), mt, null);
+      j1.setJobUuid("j1");
+      Job j2 = new Job("B", "d2", 20, LocalDateTime.now().plusDays(2), mt, null);
+      j2.setJobUuid("j2");
+
+      LocalDateTime start = LocalDateTime.now();
+      LocalDateTime end = LocalDateTime.now().plusDays(3);
+
+      when(jobRepository.findByDeadlineBetween(start, end)).thenReturn(List.of(j1, j2));
+
+      List<JobDto> results = jobService.findJobsInDeadlineRange(start, end);
+
+      assertEquals(2, results.size());
+      assertEquals("j1", results.get(0).getJobUuid());
+      assertEquals("mt-1", results.get(0).getRequiredMachineTypeUuid());
+   }
+
+   @Test
+   void deleteJob_whenScheduleConflictFound_throwsScheduledJobConflictException() {
+      when(jobRepository.existsByUuid("job-1")).thenReturn(true);
+
+      Schedule schedule = new Schedule();
+      schedule.setScheduleUuid("schedule-123");
+      when(scheduleRepository.findScheduleContainingJob("job-1")).thenReturn(Optional.of(schedule));
+
+      ScheduledJobConflictException ex = assertThrows(ScheduledJobConflictException.class,
+            () -> jobService.deleteJob("job-1"));
+
+      assertTrue(ex.getMessage().contains("job-1"));
+      verify(jobRepository, never()).deleteByUuid(any());
+   }
+
+   @Test
+   void deleteJob_whenScheduleLookupThrowsGenericException_continuesAndDeletes() {
+      when(jobRepository.existsByUuid("job-2")).thenReturn(true);
+
+      // Simulate unexpected error during conflict lookup: should be caught and
+      // deletion continues.
+      when(scheduleRepository.findScheduleContainingJob("job-2"))
+            .thenThrow(new RuntimeException("DB temporarily unavailable"));
+
+      doNothing().when(jobRepository).deleteByUuid("job-2");
+
+      assertDoesNotThrow(() -> jobService.deleteJob("job-2"));
+      verify(jobRepository).deleteByUuid("job-2");
+   }
+
+   @Test
+   void deleteJob_whenDeleteThrowsNonFkError_wrapsInIllegalStateException() {
+      when(jobRepository.existsByUuid("job-3")).thenReturn(true);
+      when(scheduleRepository.findScheduleContainingJob("job-3")).thenReturn(Optional.empty());
+
+      doThrow(new RuntimeException("some other failure"))
+            .when(jobRepository).deleteByUuid("job-3");
+
+      IllegalStateException ex = assertThrows(IllegalStateException.class, () -> jobService.deleteJob("job-3"));
+      assertTrue(ex.getMessage().toLowerCase().contains("failed to delete job"));
+   }
+
+   @Test
+   void deleteJob_whenDeleteThrowsFkError_andScheduleFound_throwsScheduledJobConflictException() {
+      when(jobRepository.existsByUuid("job-4")).thenReturn(true);
+      when(scheduleRepository.findScheduleContainingJob("job-4")).thenReturn(Optional.empty());
+
+      // Trigger FK branch by message containing "foreign key"
+      doThrow(new RuntimeException("FOREIGN KEY constraint fails"))
+            .when(jobRepository).deleteByUuid("job-4");
+
+      Schedule schedule = new Schedule();
+      schedule.setScheduleUuid("schedule-fk-1");
+
+      // On FK error, service tries again to locate the conflicting schedule
+      when(scheduleRepository.findScheduleContainingJob("job-4")).thenReturn(Optional.of(schedule));
+
+      assertThrows(ScheduledJobConflictException.class, () -> jobService.deleteJob("job-4"));
+   }
+
+   @Test
+   void deleteJob_whenDeleteThrowsFkError_andScheduleLookupFails_wrapsIllegalStateException() {
+      when(jobRepository.existsByUuid("job-5")).thenReturn(true);
+      when(scheduleRepository.findScheduleContainingJob("job-5")).thenReturn(Optional.empty());
+
+      // Trigger FK branch using the known constraint name substring too
+      doThrow(new RuntimeException("fktg2i8rwld0yc9jn0s4kixiawk"))
+            .when(jobRepository).deleteByUuid("job-5");
+
+      // Fallback lookup throws another exception; should be caught and then wrapped
+      // as IllegalStateException
+      when(scheduleRepository.findScheduleContainingJob("job-5"))
+            .thenThrow(new RuntimeException("cannot determine schedule"));
+
+      IllegalStateException ex = assertThrows(IllegalStateException.class, () -> jobService.deleteJob("job-5"));
+      assertTrue(ex.getMessage().toLowerCase().contains("failed to delete job"));
    }
 }
