@@ -12,11 +12,11 @@ import com.laborplanner.backend.model.MachineType;
 import com.laborplanner.backend.repository.JobRepository;
 import com.laborplanner.backend.repository.MachineTypeRepository;
 import jakarta.transaction.Transactional;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -45,6 +45,7 @@ class JobControllerIntegrationTest {
 
    @Test
    @Transactional
+   @WithMockUser
    void createJob_persistsJobToDatabase() throws Exception {
       // Create MachineType
       MachineType type = new MachineType();
@@ -55,7 +56,7 @@ class JobControllerIntegrationTest {
       JobRequest request = new JobRequest();
       request.setName("Integration Test Job");
       request.setDescription("Integration test of JobController");
-      request.setDuration(Duration.ofHours(3));
+      request.setDurationMinutes(180);
       request.setDeadline(LocalDateTime.now().plusDays(2));
       request.setRequiredMachineTypeUuid(createdType.getMachineTypeUuid());
 
@@ -77,6 +78,7 @@ class JobControllerIntegrationTest {
 
    @Test
    @Transactional
+   @WithMockUser
    void createJob_withEmptyMachineTypeUuid_returnsBadRequest() throws Exception {
       // Not setting MachineType
 
@@ -84,7 +86,7 @@ class JobControllerIntegrationTest {
       JobRequest request = new JobRequest();
       request.setName("Integration Test Job");
       request.setDescription("Integration test of JobController");
-      request.setDuration(Duration.ofHours(3));
+      request.setDurationMinutes(180);
       request.setDeadline(LocalDateTime.now().plusDays(2));
       request.setRequiredMachineTypeUuid("");
 
