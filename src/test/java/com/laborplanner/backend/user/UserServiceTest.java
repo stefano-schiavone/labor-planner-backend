@@ -3,6 +3,7 @@ package com.laborplanner.backend.user;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.laborplanner.backend.dto.user.CreateUserRequest;
 import com.laborplanner.backend.exception.user.UserNotFoundException;
 import com.laborplanner.backend.model.User;
 import com.laborplanner.backend.repository.UserRepository;
@@ -35,15 +36,20 @@ class UserServiceTest {
 
    @Test
    void createUser_savesAndReturnsCreatedUser() {
+      CreateUserRequest userRequest = new CreateUserRequest();
+      userRequest.setName("John");
+      userRequest.setPassword("sreifuvhotbedon");
+
       User user = new User();
       user.setName("John");
+      user.setPasswordHash("iuresgsdojnbod");
+      when(userRepository.create(any(User.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0)); // This allows me to return one instance
 
-      when(userRepository.create(user)).thenReturn(user);
-
-      User created = userService.createUser(user);
+      User created = userService.createUser(userRequest);
 
       assertEquals("John", created.getName());
-      verify(userRepository).create(user);
+      verify(userRepository).create(any(User.class));
    }
 
    // ----------------------------

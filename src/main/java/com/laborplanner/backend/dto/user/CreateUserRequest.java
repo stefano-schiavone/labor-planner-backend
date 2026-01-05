@@ -1,6 +1,7 @@
 package com.laborplanner.backend.dto.user;
 
 import com.laborplanner.backend.model.AccountType;
+
 import lombok.Getter;
 import lombok.Setter;
 

@@ -26,7 +26,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
       };
    }
 
-   private Constraint jobWithinAllowedHours(ConstraintFactory factory) {
+   Constraint jobWithinAllowedHours(ConstraintFactory factory) {
       return factory
             .forEach(ScheduledJob.class)
             .filter(
@@ -43,7 +43,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             .penalize("Job outside allowed hours", HardSoftScore.ONE_HARD);
    }
 
-   private Constraint jobMustFinishWithinDay(ConstraintFactory factory) {
+   Constraint jobMustFinishWithinDay(ConstraintFactory factory) {
       return factory.forEach(ScheduledJob.class)
             .filter(sj -> {
                if (sj.getStartingTimeGrain() == null)
@@ -58,7 +58,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             .penalize("Job crosses day boundary", HardSoftScore.ONE_HARD);
    }
 
-   private Constraint machineTypeMismatch(ConstraintFactory factory) {
+   Constraint machineTypeMismatch(ConstraintFactory factory) {
       return factory.forEach(ScheduledJob.class)
             .filter(sj -> {
                if (sj.getMachine() == null || sj.getJob() == null || sj.getJob().getRequiredMachineType() == null) {
@@ -74,7 +74,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             .penalize("Machine type mismatch", HardSoftScore.ONE_HARD);
    }
 
-   private Constraint machineConflict(ConstraintFactory factory) {
+   Constraint machineConflict(ConstraintFactory factory) {
       return factory.forEachUniquePair(ScheduledJob.class,
             Joiners.equal(ScheduledJob::getMachine))
             .filter((sj1, sj2) -> {
@@ -89,7 +89,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             .penalize("Machine conflict", HardSoftScore.ONE_HARD);
    }
 
-   private Constraint jobMustFinishBeforeDeadline(ConstraintFactory factory) {
+   Constraint jobMustFinishBeforeDeadline(ConstraintFactory factory) {
       return factory
             .forEach(ScheduledJob.class)
             .filter(sj -> {
@@ -108,7 +108,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             .penalize("Job finishes after deadline", HardSoftScore.ONE_HARD);
    }
 
-   private Constraint preferEarlyFinishOverall(ConstraintFactory factory) {
+   Constraint preferEarlyFinishOverall(ConstraintFactory factory) {
       return factory.forEach(ScheduledJob.class)
             .penalize(
                   "Prefer early finish (week > day)",
@@ -122,7 +122,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                   });
    }
 
-   private Constraint preferOneGrainGapBetweenJobs(ConstraintFactory factory) {
+   Constraint preferOneGrainGapBetweenJobs(ConstraintFactory factory) {
       return factory.forEachUniquePair(
             ScheduledJob.class,
             Joiners.equal(ScheduledJob::getMachine))
