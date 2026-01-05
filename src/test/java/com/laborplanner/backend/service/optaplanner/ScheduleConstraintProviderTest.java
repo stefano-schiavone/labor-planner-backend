@@ -6,6 +6,10 @@ import com.laborplanner.backend.model.MachineType;
 import com.laborplanner.backend.model.Schedule;
 import com.laborplanner.backend.model.ScheduledJob;
 import com.laborplanner.backend.model.TimeGrain;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -121,8 +125,281 @@ class ScheduleConstraintProviderTest {
             .penalizesBy(1);
    }
 
+   @Test
+   void machineTypeMismatch_whenMachineNull_returnsNoPenalty() {
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, ScheduledJob.START_HOUR * 60);
+      Machine m = machine("m-1", null);
+
+      Job job = jobWithDurationMinutes(TimeGrain.GRAIN_LENGTH_IN_MINUTES);
+      MachineType required = new MachineType();
+      required.setMachineTypeUuid("mt-req");
+      job.setRequiredMachineType(required);
+
+      ScheduledJob sj = scheduledJobInitialized(tg, m, job);
+      sj.setMachine(null); // hit: sj.getMachine() == null -> return false
+
+      Schedule sol = solutionWith(sj, tg, m);
+
+      verifier.verifyThat(ScheduleConstraintProvider::machineTypeMismatch)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void machineTypeMismatch_whenJobNull_returnsNoPenalty() {
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, ScheduledJob.START_HOUR * 60);
+      Machine m = machine("m-1", null);
+
+      ScheduledJob sj = new ScheduledJob();
+      sj.setScheduledJobUuid("sj-" + UUID.randomUUID());
+      sj.setStartingTimeGrain(tg);
+      sj.setCompatibleMachines(List.of(m));
+      sj.setMachine(m);
+      sj.setJob(null); // hit: sj.getJob() == null -> return false
+
+      Schedule sol = solutionWith(sj, tg, m);
+
+      verifier.verifyThat(ScheduleConstraintProvider::machineTypeMismatch)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void machineTypeMismatch_whenRequiredTypeNull_returnsNoPenalty_withoutCallingSetterNull() {
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, ScheduledJob.START_HOUR * 60);
+      Machine m = machine("m-1", null);
+
+      Job job = jobWithDurationMinutes(TimeGrain.GRAIN_LENGTH_IN_MINUTES);
+      // Do NOT call setRequiredMachineType(null) (it NPEs). Just leave it null.
+
+      ScheduledJob sj = scheduledJobInitialized(tg, m, job);
+
+      Schedule sol = solutionWith(sj, tg, m);
+
+      verifier.verifyThat(ScheduleConstraintProvider::machineTypeMismatch)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void machineTypeMismatch_whenMachineTypeNull_penalizes() {
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, ScheduledJob.START_HOUR * 60);
+
+      Machine m = machine("m-1", null); // hit: sj.getMachine().getType() == null -> true
+
+      MachineType required = new MachineType();
+      required.setMachineTypeUuid("mt-req");
+      Job job = jobWithDurationMinutes(TimeGrain.GRAIN_LENGTH_IN_MINUTES);
+      job.setRequiredMachineType(required);
+
+      ScheduledJob sj = scheduledJobInitialized(tg, m, job);
+
+      Schedule sol = solutionWith(sj, tg, m);
+
+      verifier.verifyThat(ScheduleConstraintProvider::machineTypeMismatch)
+            .givenSolution(sol)
+            .penalizesBy(1);
+   }
+
+   @Test
+   void machineConflict_whenEitherMachineNull_returnsNoPenalty() {
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, ScheduledJob.START_HOUR * 60);
+      Machine m = machine("m-1", null);
+
+      ScheduledJob a = scheduledJobInitialized(tg, m, jobWithDurationMinutes(10));
+      ScheduledJob b = scheduledJobInitialized(tg, m, jobWithDurationMinutes(10));
+
+      a.setMachine(null); // hit: sj1.getMachine() == null
+
+      Schedule sol = solutionWith(List.of(a, b), List.of(tg), List.of(m));
+
+      verifier.verifyThat(ScheduleConstraintProvider::machineConflict)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void machineConflict_whenEitherStartingTimeNull_returnsNoPenalty() {
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, ScheduledJob.START_HOUR * 60);
+      Machine m = machine("m-1", null);
+
+      ScheduledJob a = scheduledJobInitialized(tg, m, jobWithDurationMinutes(10));
+      ScheduledJob b = scheduledJobInitialized(tg, m, jobWithDurationMinutes(10));
+
+      a.setStartingTimeGrain(null); // hit: sj1.getStartingTimeGrain() == null
+
+      Schedule sol = solutionWith(List.of(a, b), List.of(tg), List.of(m));
+
+      verifier.verifyThat(ScheduleConstraintProvider::machineConflict)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void machineConflict_whenOverlaps_penalizes() {
+      // a: starts 0 duration 2 grains (10 minutes), b: starts 1 duration 1 grain =>
+      // overlap
+      Machine m = machine("m-1", null);
+      TimeGrain tg0 = timeGrain(LocalDate.of(2026, 1, 5), 0, ScheduledJob.START_HOUR * 60);
+      TimeGrain tg1 = timeGrain(LocalDate.of(2026, 1, 5), 1, ScheduledJob.START_HOUR * 60 + 5);
+
+      ScheduledJob a = scheduledJobInitialized(tg0, m, jobWithDurationMinutes(10)); // 2 grains
+      ScheduledJob b = scheduledJobInitialized(tg1, m, jobWithDurationMinutes(5)); // 1 grain
+
+      Schedule sol = solutionWith(List.of(a, b), List.of(tg0, tg1), List.of(m));
+
+      verifier.verifyThat(ScheduleConstraintProvider::machineConflict)
+            .givenSolution(sol)
+            .penalizesBy(1);
+   }
+
+   @Test
+   void jobMustFinishBeforeDeadline_whenStartingTimeNull_returnsNoPenalty() {
+      Machine m = machine("m-1", null);
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, 7 * 60);
+
+      Job job = jobWithDurationMinutes(10);
+      job.setDeadline(LocalDateTime.of(2026, 1, 5, 8, 0));
+
+      ScheduledJob sj = scheduledJobInitialized(tg, m, job);
+      sj.setStartingTimeGrain(null); // hit: startingTimeGrain == null
+
+      Schedule sol = solutionWith(sj, tg, m);
+
+      verifier.verifyThat(ScheduleConstraintProvider::jobMustFinishBeforeDeadline)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void jobMustFinishBeforeDeadline_whenJobNull_returnsNoPenalty() {
+      Machine m = machine("m-1", null);
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, 7 * 60);
+
+      ScheduledJob sj = new ScheduledJob();
+      sj.setScheduledJobUuid("sj-" + UUID.randomUUID());
+      sj.setStartingTimeGrain(tg);
+      sj.setCompatibleMachines(List.of(m));
+      sj.setMachine(m);
+      sj.setJob(null); // hit: sj.getJob() == null
+
+      Schedule sol = solutionWith(sj, tg, m);
+
+      verifier.verifyThat(ScheduleConstraintProvider::jobMustFinishBeforeDeadline)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void jobMustFinishBeforeDeadline_whenDeadlineNull_returnsNoPenalty() {
+      Machine m = machine("m-1", null);
+      TimeGrain tg = timeGrain(LocalDate.of(2026, 1, 5), 0, 7 * 60);
+
+      Job job = jobWithDurationMinutes(10);
+      job.setDeadline(null); // hit: deadline null
+
+      ScheduledJob sj = scheduledJobInitialized(tg, m, job);
+      Schedule sol = solutionWith(sj, tg, m);
+
+      verifier.verifyThat(ScheduleConstraintProvider::jobMustFinishBeforeDeadline)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void preferOneGrainGapBetweenJobs_whenEitherStartingNull_returnsNoPenalty() {
+      Machine m = machine("m-1", null);
+      TimeGrain tg0 = timeGrain(LocalDate.of(2026, 1, 5), 0, 7 * 60);
+
+      ScheduledJob a = scheduledJobInitialized(tg0, m, jobWithDurationMinutes(10));
+      ScheduledJob b = scheduledJobInitialized(tg0, m, jobWithDurationMinutes(10));
+      b.setStartingTimeGrain(null); // hit: sj2 starting null -> filter returns false
+
+      Schedule sol = solutionWith(List.of(a, b), List.of(tg0), List.of(m));
+
+      verifier.verifyThat(ScheduleConstraintProvider::preferOneGrainGapBetweenJobs)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void preferOneGrainGapBetweenJobs_whenOverlapping_ignoredHere_returnsNoPenalty() {
+      Machine m = machine("m-1", null);
+      TimeGrain tg0 = timeGrain(LocalDate.of(2026, 1, 5), 0, 7 * 60);
+      TimeGrain tg1 = timeGrain(LocalDate.of(2026, 1, 5), 1, 7 * 60 + 5);
+
+      ScheduledJob a = scheduledJobInitialized(tg0, m, jobWithDurationMinutes(10)); // 2 grains
+      ScheduledJob b = scheduledJobInitialized(tg1, m, jobWithDurationMinutes(5)); // overlaps
+
+      Schedule sol = solutionWith(List.of(a, b), List.of(tg0, tg1), List.of(m));
+
+      // filter returns !overlapsWith -> false, so no penalty here
+      verifier.verifyThat(ScheduleConstraintProvider::preferOneGrainGapBetweenJobs)
+            .givenSolution(sol)
+            .penalizesBy(0);
+   }
+
+   @Test
+   void preferOneGrainGapBetweenJobs_whenBackToBack_penalizesBy1() {
+      // a: [0,2) b: [2,3) => gap = 0 -> penalty 1 (executes gapInGrains and penalty
+      // mapping)
+      Machine m = machine("m-1", null);
+
+      TimeGrain tg0 = timeGrain(LocalDate.of(2026, 1, 5), 0, 7 * 60);
+      TimeGrain tg2 = timeGrain(LocalDate.of(2026, 1, 5), 2, 7 * 60 + 10);
+
+      ScheduledJob a = scheduledJobInitialized(tg0, m, jobWithDurationMinutes(10)); // 2 grains
+      ScheduledJob b = scheduledJobInitialized(tg2, m, jobWithDurationMinutes(5)); // starts at 2
+
+      Schedule sol = solutionWith(List.of(a, b), List.of(tg0, tg2), List.of(m));
+
+      verifier.verifyThat(ScheduleConstraintProvider::preferOneGrainGapBetweenJobs)
+            .givenSolution(sol)
+            .penalizesBy(1);
+   }
+
+   @Test
+   void preferOneGrainGapBetweenJobs_whenBEndsBeforeAStarts_executesOtherOrderBranch_penalizesBy1() {
+      // b before a, back-to-back: b [0,1), a [1,2) => still gap 0, but exercises bEnd
+      // <= aStart branch
+      Machine m = machine("m-1", null);
+
+      TimeGrain tg0 = timeGrain(LocalDate.of(2026, 1, 5), 0, 7 * 60);
+      TimeGrain tg1 = timeGrain(LocalDate.of(2026, 1, 5), 1, 7 * 60 + 5);
+
+      ScheduledJob b = scheduledJobInitialized(tg0, m, jobWithDurationMinutes(5)); // 1 grain
+      ScheduledJob a = scheduledJobInitialized(tg1, m, jobWithDurationMinutes(5)); // starts after b ends
+
+      Schedule sol = solutionWith(List.of(a, b), List.of(tg0, tg1), List.of(m));
+
+      verifier.verifyThat(ScheduleConstraintProvider::preferOneGrainGapBetweenJobs)
+            .givenSolution(sol)
+            .penalizesBy(1);
+   }
+
+   @Test
+   void gapInGrains_whenOverlapping_returns0_viaReflection_forCoverage() throws Exception {
+      // This directly covers the private helper "overlapping -> 0" branch
+      ScheduleConstraintProvider provider = new ScheduleConstraintProvider();
+
+      Machine m = machine("m-1", null);
+      TimeGrain tg0 = timeGrain(LocalDate.of(2026, 1, 5), 0, 7 * 60);
+      TimeGrain tg1 = timeGrain(LocalDate.of(2026, 1, 5), 1, 7 * 60 + 5);
+
+      ScheduledJob a = scheduledJobInitialized(tg0, m, jobWithDurationMinutes(10)); // [0,2)
+      ScheduledJob b = scheduledJobInitialized(tg1, m, jobWithDurationMinutes(10)); // [1,3) overlaps
+
+      Method method = ScheduleConstraintProvider.class.getDeclaredMethod("gapInGrains", ScheduledJob.class,
+            ScheduledJob.class);
+      method.setAccessible(true);
+
+      int gap = (int) method.invoke(provider, a, b);
+
+      assertEquals(0, gap);
+   }
+
    // ----------------------------
-   // Helpers
+   // Existing helpers (plus a couple small overloads)
    // ----------------------------
 
    private Schedule solutionWith(ScheduledJob sj, TimeGrain tg, Machine m) {
@@ -138,19 +415,23 @@ class ScheduleConstraintProviderTest {
       return schedule;
    }
 
-   /**
-    * Creates a ScheduledJob that is "initialized" from OptaPlanner's perspective:
-    * - has PlanningId
-    * - has BOTH planning variables set (machine, startingTimeGrain)
-    * - machine is within compatibleMachines range (because machine variable uses
-    * compatibleMachineRange)
-    */
+   private Schedule solutionWith(List<ScheduledJob> jobs, List<TimeGrain> grains, List<Machine> machines) {
+      Schedule schedule = new Schedule();
+      schedule.setScheduleUuid("s-" + UUID.randomUUID());
+      schedule.setWeekStartDate(LocalDateTime.of(2026, 1, 5, 0, 0));
+
+      schedule.setScheduledJobList(jobs);
+      schedule.setTimeGrainList(grains);
+      schedule.setMachineList(machines);
+      schedule.setJobList(jobs.stream().map(ScheduledJob::getJob).filter(j -> j != null).toList());
+
+      return schedule;
+   }
+
    private ScheduledJob scheduledJobInitialized(TimeGrain tg, Machine machine, Job job) {
       ScheduledJob sj = new ScheduledJob();
       sj.setScheduledJobUuid("sj-" + UUID.randomUUID());
       sj.setJob(job);
-
-      // Planning variables (both must be non-null to avoid init score < 0)
       sj.setStartingTimeGrain(tg);
 
       sj.setCompatibleMachines(List.of(machine));
@@ -175,7 +456,7 @@ class ScheduleConstraintProviderTest {
 
    private TimeGrain timeGrain(LocalDate date, int grainIndex, int startingMinuteOfDay) {
       TimeGrain tg = new TimeGrain();
-      tg.setDate(date); // REQUIRED for toDateTime()
+      tg.setDate(date);
       tg.setGrainIndex(grainIndex);
       tg.setStartingMinuteOfDay(startingMinuteOfDay);
       return tg;
