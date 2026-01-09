@@ -22,7 +22,9 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
             jobMustFinishBeforeDeadline(factory),
             jobMustFinishWithinDay(factory),
             preferEarlyFinishOverall(factory),
-            preferOneGrainGapBetweenJobs(factory)
+            preferOneGrainGapBetweenJobs(factory),
+            penalizeLargeGapBetweenJobs(factory),
+            penalizeUnnecessaryLateStart(factory)
       };
    }
 
@@ -163,4 +165,65 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
       }
    }
 
+   Constraint penalizeLargeGapBetweenJobs(ConstraintFactory factory) {
+      return factory.forEachUniquePair(
+            ScheduledJob.class,
+            Joiners.equal(ScheduledJob::getMachine))
+            .filter((sj1, sj2) -> {
+               if (sj1.getStartingTimeGrain() == null || sj2.getStartingTimeGrain() == null) {
+                  return false;
+               }
+               // Only consider jobs on the same day
+               if (!sj1.getStartingTimeGrain().getDate().equals(sj2.getStartingTimeGrain().getDate())) {
+                  return false;
+               }
+               // Ignore overlapping jobs (handled by hard constraint)
+               if (sj1.overlapsWith(sj2)) {
+                  return false;
+               }
+               // Check if gap is greater than 1 grain
+               int gap = gapInGrains(sj1, sj2);
+               return gap > 1;
+            })
+            .penalize(
+                  "Penalize large gap between jobs on same day",
+                  HardSoftScore.ONE_SOFT,
+                  (sj1, sj2) -> {
+                     int gap = gapInGrains(sj1, sj2);
+                     // Penalize the excess gap beyond 1 grain
+                     return gap - 1;
+                  });
+   }
+
+   Constraint penalizeUnnecessaryLateStart(ConstraintFactory factory) {
+      return factory.forEach(ScheduledJob.class)
+            .filter(sj -> sj.getStartingTimeGrain() != null && sj.getMachine() != null)
+            .ifNotExists(
+                  ScheduledJob.class,
+                  Joiners.equal(ScheduledJob::getMachine),
+                  Joiners.filtering((sj, other) -> {
+                     if (other.getStartingTimeGrain() == null) {
+                        return false;
+                     }
+                     // Check if 'other' is on the same day and ends before 'sj' starts
+                     if (!sj.getStartingTimeGrain().getDate().equals(other.getStartingTimeGrain().getDate())) {
+                        return false;
+                     }
+                     // 'other' must end before or at 'sj' start (i.e., other is a predecessor)
+                     int otherEnd = other.getStartingTimeGrain().getGrainIndex() + other.getDurationInGrains();
+                     int sjStart = sj.getStartingTimeGrain().getGrainIndex();
+                     return otherEnd <= sjStart && !sj.equals(other);
+                  }))
+            .penalize(
+                  "Penalize unnecessary late start",
+                  HardSoftScore.ONE_SOFT,
+                  sj -> {
+                     // Penalize based on how far from the start of the day this job begins
+                     int grainsPerDay = (ScheduledJob.END_HOUR - ScheduledJob.START_HOUR) * 60
+                           / TimeGrain.GRAIN_LENGTH_IN_MINUTES;
+                     int dayStartIndex = (sj.getStartingTimeGrain().getGrainIndex() / grainsPerDay) * grainsPerDay;
+                     int grainOffset = sj.getStartingTimeGrain().getGrainIndex() - dayStartIndex;
+                     return grainOffset;
+                  });
+   }
 }
